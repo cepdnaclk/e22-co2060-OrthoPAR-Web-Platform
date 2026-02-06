@@ -1,57 +1,25 @@
-___
-# DELETE THIS INSTRUCTIONS AND ADD AN INTRODUCTION ABOUT YOUR PROJECT
-___
+# Clinical Automated PAR Index System
 
-# eYY-co2060-project-template
+The **Clinical Automated PAR Index System** is a robust, web based software platform designed to automate the calculation of the Peer Assessment Rating (PAR) Index for orthodontic treatment. It replaces the conventional manual scoring process,which is time consuming, labor intensive, and subject to examiner variability with an objective, machine-learning powered solution suitable for real world clinical environments.
 
-This is a sample repository you can use for your Software Systems Design Project. Once you followed these instructions, remove the text and add a brief introduction to here.
+The platform supports the complete assessment workflow, including:
 
-### Enable GitHub Pages
+* student registration
+* supervisor assignment
+* research proposal submission and approvals
+* periodic progress reviews
+* ethics clearance tracking
+* thesis submission and examination management
 
-You can put the things to be shown in GitHub pages into the _docs/_ folder. Both html and md file formats are supported. You need to go to settings and enable GitHub pages and select _main_ branch and _docs_ folder from the dropdowns, as shown in the below image.
+Role based access ensures clear separation of views and responsibilities for postgraduate students, supervisors, coordinators, and faculty administrators.
 
-![image](https://user-images.githubusercontent.com/11540782/98789936-028d3600-2429-11eb-84be-aaba665fdc75.png)
+## Key features
 
-### Special Configurations
+* **Secure 3D Visualization:** Clinician friendly user interface for interacting with 3D dental models.
+* **Automated MLOps:** Pipelines for continuous model retraining, versioning, and validation.
+* **Clinical Data Security:** Secure patient data storage with industry standard encryption and authentication.
+* **Scalable Architecture:** Built to support multi institution use and high volume clinical data.
+* **Rigorous Testing:** Comprehensive unit testing and automated regression testing suites for production readiness.
 
-These projects will be automatically added into [https://projects.ce.pdn.ac.lk](). If you like to show more details about your project on this site, you can fill the parameters in the file, _/docs/index.json_
 
-```
-{
-  "title": "This is the title of the project",
-  "team": [
-    {
-      "name": "Team Member Name 1",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    },
-    {
-      "name": "Team Member Name 2",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    },
-    {
-      "name": "Team Member Name 3",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    }
-  ],
-  "supervisors": [
-    {
-      "name": "Dr. Supervisor 1",
-      "email": "email@eng.pdn.ac.lk"
-    },
-    {
-      "name": "Supervisor 2",
-      "email": "email@eng.pdn.ac.lk"
-    }
-  ],
-  "tags": ["Web", "Software Systems", "CO2060"]
-}
-```
-
-Once you filled this _index.json_ file, please verify the syntax is correct. (You can use [this](https://jsonlint.com/) tool).
-
-### Page Theme
-
-A custom theme integrated with this GitHub Page, which is based on [github.com/cepdnaclk/eYY-project-theme](https://github.com/cepdnaclk/eYY-project-theme). If you like to remove this default theme, you can remove the file, _docs/\_config.yml_ and use HTML based website.
+Built to transition existing research prototypes into a production ready system, this platform aims to significantly improve diagnostic consistency and objectivity while enabling large scale outcome analysis for the international orthodontic community.

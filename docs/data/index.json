@@ -1,31 +1,38 @@
 {
     "team": [
         {
-            "name": "Team Member Name 1",
-            "email": "email@eng.pdn.ac.lk",
-            "eNumber": "E/yy/xxx"
+            "name": "M.I.M. Imaadh",
+            "email": "e22151@eng.pdn.ac.lk",
+            "eNumber": "E/22/151"
         },
         {
-            "name": "Team Member Name 2",
-            "email": "email@eng.pdn.ac.lk",
-            "eNumber": "E/yy/xxx"
+            "name": "R. DAKSHAYANI",
+            "email": "e22060@eng.pdn.ac.lk",
+            "eNumber": "E/22/060"
         },
         {
-            "name": "Team Member Name 3",
-            "email": "email@eng.pdn.ac.lk",
-            "eNumber": "E/yy/xxx"
+            "name": "D.A. Victor",
+            "email": "e22405@eng.pdn.ac.lk",
+            "eNumber": "E/22/405"
+        },
+        {
+            "name": "P.G.D.D. Chandrawansha",
+            "email": "e22056@eng.pdn.ac.lk",
+            "eNumber": "E/22/056"
         }
     ],
     "supervisors": [
         {
-            "name": "Dr. Supervisor 1",
-            "email": "email@eng.pdn.ac.lk"
+            "name": "Dr. Asitha Bandaranayake",
+            "email": "e21148@eng.pdn.ac.lk"
         },
         {
-            "name": "Supervisor 2",
-            "email": "email@eng.pdn.ac.lk"
+            "name": "S. Ganathipan",
+            "email": "asithab@eng.pdn.ac.lk"
         }
     ],
+    "description": "This project is a robust, web based software system designed to automate the Peer Assessment Rating (PAR) Index calculation for orthodontic treatment. While previous research successfully demonstrated the feasibility of using Machine Learning to detect dental landmarks, this project focuses on the critical engineering challenge of transitioning that research prototype into a production-ready clinical product.
+Currently, conventional PAR scoring is manual, time consuming, and subject to examiner variability. This system solves that bottleneck by providing a fully automated, objective assessment tool suitable for real world hospital environments and multi institution use,.",
     "tags": ["Web", "Software Systems", "CO2060"],
     "image":"cover_page.jpg",
     "thumbnail":"thumbnail.jpg"

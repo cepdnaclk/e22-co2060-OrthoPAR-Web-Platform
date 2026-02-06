@@ -49,13 +49,13 @@ This project builds upon previous research to develop a **Web-Based Software Sys
 *   **Security:** Ensuring secure data handling and encryption suitable for hospital environments.
 *   **Scalability:** Designing an architecture that supports multi-institution access, moving beyond a single local machine.
 
-The system is being developed in collaboration with Dr. H.S.K. Ratnatilake (Faculty of Dental Sciences) to ensure it meets strict clinical workflows and practitioner needs [1, 2].
+The system is being developed in collaboration with Dr. H.S.K. Ratnatilake (Faculty of Dental Sciences) to ensure it meets strict clinical workflows and practitioner needs.
 
 ## Conclusion
 
 This project aims to solve a genuine clinical bottleneck in orthodontic diagnostics. By automating the PAR Index calculation, the system significantly improves diagnostic objectivity and consistency while saving clinicians substantial time during audits.
 
-Beyond immediate clinical use, the system enables large-scale outcome analysis which was previously unfeasible due to manual constraints. The project has already attracted international interest from orthodontic groups in Japan and South Korea, demonstrating its potential to evolve from an academic prototype into a globally usable clinical software product [2, 3].
+Beyond immediate clinical use, the system enables large-scale outcome analysis which was previously unfeasible due to manual constraints. The project has already attracted international interest from orthodontic groups in Japan and South Korea, demonstrating its potential to evolve from an academic prototype into a globally usable clinical software product.
 
 ## Links
 

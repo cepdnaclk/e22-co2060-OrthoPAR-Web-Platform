@@ -24,15 +24,13 @@
     "supervisors": [
         {
             "name": "Dr. Asitha Bandaranayake",
-            "email": "e21148@eng.pdn.ac.lk"
+            "email": "asithab@eng.pdn.ac.lk"
         },
         {
             "name": "S. Ganathipan",
-            "email": "asithab@eng.pdn.ac.lk"
+            "email": "e21148@eng.pdn.ac.lk"
         }
     ],
-    "description": "This project is a robust, web based software system designed to automate the Peer Assessment Rating (PAR) Index calculation for orthodontic treatment. While previous research successfully demonstrated the feasibility of using Machine Learning to detect dental landmarks, this project focuses on the critical engineering challenge of transitioning that research prototype into a production-ready clinical product.
-Currently, conventional PAR scoring is manual, time consuming, and subject to examiner variability. This system solves that bottleneck by providing a fully automated, objective assessment tool suitable for real world hospital environments and multi institution use,.",
     "tags": ["Web", "Software Systems", "CO2060"],
     "image":"cover_page.jpg",
     "thumbnail":"thumbnail.jpg"

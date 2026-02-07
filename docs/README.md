@@ -20,8 +20,8 @@ title: Automated PAR Index Calculation System
 -  E/22/056, P.G.D.D. Chandrawansha, [e22056@eng.pdn.ac.lk](mailto:e22056@eng.pdn.ac.lk)
 
 ## Supervisors
--  Dr. Asitha Bandaranayake, [e21148@eng.pdn.ac.lk](mailto:e21148@eng.pdn.ac.lk)
--  S. Ganathipan, [asithab@eng.pdn.ac.lk](mailto:asithab@eng.pdn.ac.lk)
+-  Dr. Asitha Bandaranayake, [asithab@eng.pdn.ac.lk](mailto:asithab@eng.pdn.ac.lk)
+-  S. Ganathipan, [e21148@eng.pdn.ac.lk](mailto:e21148@eng.pdn.ac.lk)
 
 <!-- Image (photo/drawing of the final hardware) should be here -->
 

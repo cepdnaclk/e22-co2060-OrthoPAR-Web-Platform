@@ -23,3 +23,8 @@ Role based access ensures clear separation of views and responsibilities for pos
 
 
 Built to transition existing research prototypes into a production ready system, this platform aims to significantly improve diagnostic consistency and objectivity while enabling large scale outcome analysis for the international orthodontic community.
+
+
+Have the following packages and softwares installed inorder to run the program- Postgress, Relevant Python Packages,
+
+Python Packages used- python-dotenv, sqlalchemy, 

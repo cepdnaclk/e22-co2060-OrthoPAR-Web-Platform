@@ -1,1 +1,5 @@
+# Add your own files to be ignored from git in here
 .env
+.venv/
+venv/
+__pycache__/

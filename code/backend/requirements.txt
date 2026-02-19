@@ -1,4 +1,8 @@
-#Listed below are the dependencies for the backend of the OrthoPAR Web Platform.
-python-dotenv==1.2.1
-sqlalchemy==2.0.46
-fastapi[standard]==0.129.0
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

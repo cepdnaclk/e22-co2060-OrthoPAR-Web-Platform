@@ -13,4 +13,5 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # Database URL
 # Default to PostgreSQL
 # Format: postgresql://user:password@host:port/dbname
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:shayani_04@localhost/PARindex")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/tabelname")
+

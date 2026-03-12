@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
 
-from .. import schemas, models
-from ..database import get_db
+import schemas, models
+from database import get_db
 
 router = APIRouter()
 

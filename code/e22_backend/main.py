@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base
-from .api import patients, scans, landmarks
+from database import engine, Base
+from api import patients, scans, landmarks
 
 # Create tables in DB (for simple setups; use Alembic for production)
 Base.metadata.create_all(bind=engine)

@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
 
-from .. import schemas, models
-from ..database import get_db
-from ..services.par_score_service import calculate_par_score
+import schemas, models
+from database import get_db
+from services.par_score_service import calculate_par_score
 
 router = APIRouter()
 

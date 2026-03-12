@@ -5,9 +5,9 @@ from typing import List
 import boto3
 from botocore.exceptions import NoCredentialsError
 
-from .. import schemas, models
-from ..database import get_db
-from ..config import settings
+import schemas, models
+from database import get_db
+from config import settings
 
 router = APIRouter()
 s3_client = boto3.client(

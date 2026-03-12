@@ -58,11 +58,11 @@ From the project root, activate the virtual environment and install all necessar
 # Activate the virtual environment (Windows)
 .\venv\Scripts\activate
 
-# Install standard backend and dev dependencies
+# Install standard backend and dev dependencies (FastAPI, SQLAlchemy, psycopg2-binary, etc.)
 pip install -r code/e22_backend/requirements.txt -r code/e22_backend/requirements-dev.txt
 
 # (Optional) Install ML Extension for Clinical Validation
-# Required for running test_ml_integration.py (TensorFlow, Trimesh, etc.)
+# Installs: tensorflow-cpu, trimesh, numpy, scipy, gzip-reader
 pip install -r code/e22_backend/requirements-ml.txt
 ```
 

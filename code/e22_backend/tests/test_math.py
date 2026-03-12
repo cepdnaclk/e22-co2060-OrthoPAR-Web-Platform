@@ -74,6 +74,7 @@ def test_full_calculate_par_score():
     buccal = [LandmarkCreate(point_name="LCover", x=0, y=0, z=0, scan_id=sid)]
     
     res = calculate_par_score(upper, lower, buccal)
+    print(f"\n[Test Output] Calculated FULL PAR SCORE dictionary: {res}")
     
     # Simple check to make sure keys exist and it doesn't crash
     assert "final_score" in res

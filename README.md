@@ -42,13 +42,14 @@ The backend now features a fully integrated ML pipeline for landmark extraction 
 
 ### Prerequisites
 - **Python 3.10 - 3.12 (Recommended)**: Using a stable version ensures pre-compiled wheels are available.
-- **Python 3.14+ (Experimental)**: May require a Rust compiler (Cargo) to build some dependencies from source.
+- **Git LFS**: Required to download the large 3D scans and ML models. Install it from [git-lfs.com](https://git-lfs.com/).
 
 ### 1. Pull the Refactored Branch
-Ensure you have the latest changes from the `refactored-backend-with-ml` branch:
+Ensure you have the latest changes and pull the large files:
 ```bash
 git checkout refactored-backend-with-ml
 git pull origin refactored-backend-with-ml
+git lfs pull
 ```
 
 ### 2. Environment Setup

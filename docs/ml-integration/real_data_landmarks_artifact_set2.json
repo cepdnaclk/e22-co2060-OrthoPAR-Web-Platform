@@ -1,0 +1,782 @@
+{
+    "patient_id": "ca3a1067-cc55-42d0-974f-b4b87e8fe546",
+    "par_score": {
+        "upper_anterior_score": 2,
+        "lower_anterior_score": 2,
+        "buccal_occlusion_antero_posterior_score": 0,
+        "buccal_occlusion_transverse_score": 0,
+        "buccal_occlusion_vertical_score": 0,
+        "overjet_score": 0,
+        "overbite_score": 0,
+        "centreline_score": 8,
+        "final_score": 12,
+        "id": "c764fc7e-242b-412c-a822-e72c8a397560",
+        "patient_id": "ca3a1067-cc55-42d0-974f-b4b87e8fe546",
+        "calculated_at": "2026-03-12T18:30:55.747080",
+        "model_version": "v1.0-legacy"
+    },
+    "landmarks": {
+        "Upper Arch Segment": [
+            {
+                "point_name": "L1D",
+                "x": -0.02486078441143036,
+                "y": 0.2086978256702423,
+                "z": 2.2525200843811035,
+                "is_ai_predicted": true,
+                "id": "9c020ed7-eeef-41ff-b19f-247a85d3edc5",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L1M",
+                "x": -0.27498161792755127,
+                "y": -1.2733731269836426,
+                "z": 1.877536654472351,
+                "is_ai_predicted": true,
+                "id": "b4b4abec-3ba4-432d-a41d-3afd87f13526",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L1Mid",
+                "x": -0.866388738155365,
+                "y": -0.8476112484931946,
+                "z": 2.3705368041992188,
+                "is_ai_predicted": true,
+                "id": "72850069-717e-4adb-ace9-d76a438bc392",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L2D",
+                "x": -0.8329098224639893,
+                "y": 0.7247059345245361,
+                "z": 2.521754503250122,
+                "is_ai_predicted": true,
+                "id": "ed9a48a3-de5b-4ed6-bad1-16af3f650548",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L2M",
+                "x": -1.3731144666671753,
+                "y": 0.13760273158550262,
+                "z": 2.2110280990600586,
+                "is_ai_predicted": true,
+                "id": "42a8bb12-bf55-42b2-ae78-2e155e44c102",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L2Mid",
+                "x": 0.05873498693108559,
+                "y": 1.1862635612487793,
+                "z": 1.8805031776428223,
+                "is_ai_predicted": true,
+                "id": "78e4d649-c980-4f4b-b8c5-f2826c10d76e",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L3M",
+                "x": -0.22568950057029724,
+                "y": 0.8855338096618652,
+                "z": 1.9954633712768555,
+                "is_ai_predicted": true,
+                "id": "1bf40973-46b8-479e-bfd6-d019e8eb00e0",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L3Mid",
+                "x": -1.0003942251205444,
+                "y": 1.8651764392852783,
+                "z": 2.110734462738037,
+                "is_ai_predicted": true,
+                "id": "6c09faa6-7a16-497a-8e45-0247bc5f6be7",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L4BT",
+                "x": -1.4538981914520264,
+                "y": 1.0385258197784424,
+                "z": 0.8914927244186401,
+                "is_ai_predicted": true,
+                "id": "d6b4c841-39e4-423c-9af8-e892005d27d7",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L4PT",
+                "x": -0.6651935577392578,
+                "y": 0.7827946543693542,
+                "z": 1.1306324005126953,
+                "is_ai_predicted": true,
+                "id": "d8bab181-9647-4092-b8e2-460e50462b2c",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L5BT",
+                "x": -0.38974103331565857,
+                "y": 1.5881156921386719,
+                "z": 1.490828037261963,
+                "is_ai_predicted": true,
+                "id": "eebd561d-9e14-4a7f-82df-bafdd8cc6b60",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L5PT",
+                "x": -0.587337851524353,
+                "y": 1.027243971824646,
+                "z": 1.8914227485656738,
+                "is_ai_predicted": true,
+                "id": "72e2e76a-3369-4e84-a98e-adcb6847317a",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L6BD",
+                "x": -0.36448466777801514,
+                "y": 1.2227668762207031,
+                "z": 1.1668223142623901,
+                "is_ai_predicted": true,
+                "id": "fdd0ca0a-2ca7-4518-b181-677f1afd1424",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L6BM",
+                "x": -0.6185769438743591,
+                "y": 1.0700403451919556,
+                "z": 0.48127609491348267,
+                "is_ai_predicted": true,
+                "id": "4f85ee52-899e-4cb6-81a8-34a3dbfcc569",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L6PD",
+                "x": -0.229991614818573,
+                "y": 0.861085057258606,
+                "z": 1.080949306488037,
+                "is_ai_predicted": true,
+                "id": "5707f151-0a01-4071-ac0e-7062aa2f92af",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L6PM",
+                "x": -1.378312349319458,
+                "y": 0.3900716006755829,
+                "z": 1.3147764205932617,
+                "is_ai_predicted": true,
+                "id": "57e92eeb-8030-47ce-9efb-a5a178aa5399",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L7BD",
+                "x": 0.03228709101676941,
+                "y": 1.9398032426834106,
+                "z": 1.5436652898788452,
+                "is_ai_predicted": true,
+                "id": "b0b97877-37ea-4617-9477-6cc6f19f060f",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L7BM",
+                "x": 0.04482573643326759,
+                "y": 1.3426040410995483,
+                "z": 0.8476933836936951,
+                "is_ai_predicted": true,
+                "id": "77364b4b-7f9a-4cc1-a182-484ad99e2cdb",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L7PD",
+                "x": -0.23082682490348816,
+                "y": 1.5059376955032349,
+                "z": 1.1376349925994873,
+                "is_ai_predicted": true,
+                "id": "465bc07e-9b57-4503-aa7e-2f2719f7c83e",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "L7PM",
+                "x": 0.3236783742904663,
+                "y": 0.8323038816452026,
+                "z": 1.6478955745697021,
+                "is_ai_predicted": true,
+                "id": "15404874-edfc-4195-acd3-cad1297f9a09",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R1D",
+                "x": -0.6995594501495361,
+                "y": -2.946032762527466,
+                "z": 2.2575931549072266,
+                "is_ai_predicted": true,
+                "id": "de34f380-4928-4e29-80e0-ba1015853668",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R1M",
+                "x": -0.5420892834663391,
+                "y": -1.108080267906189,
+                "z": 2.4061551094055176,
+                "is_ai_predicted": true,
+                "id": "55fdcc60-7d18-4ad8-83d9-cf19fe017927",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R1Mid",
+                "x": -0.1742788851261139,
+                "y": -1.7828834056854248,
+                "z": 2.833181619644165,
+                "is_ai_predicted": true,
+                "id": "2af8cebf-c852-4974-bae4-149ef865e8c7",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R2D",
+                "x": -0.9279667735099792,
+                "y": -2.617504119873047,
+                "z": 2.7508938312530518,
+                "is_ai_predicted": true,
+                "id": "e99510ad-6527-46ee-9f11-59b36967d5c9",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R2M",
+                "x": -0.529275119304657,
+                "y": -2.5470919609069824,
+                "z": 2.627082586288452,
+                "is_ai_predicted": true,
+                "id": "43076284-9323-4762-a0ca-b3f91f23018e",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R2Mid",
+                "x": -1.8165103197097778,
+                "y": -2.7085623741149902,
+                "z": 2.246732711791992,
+                "is_ai_predicted": true,
+                "id": "20712450-7a91-4363-aa48-95c61cb4bf57",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R3M",
+                "x": -0.37741631269454956,
+                "y": -3.324083089828491,
+                "z": 2.2844221591949463,
+                "is_ai_predicted": true,
+                "id": "1d6fcf68-ea4a-40e0-b92d-ce1743a9a12f",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R3Mid",
+                "x": -0.3663184344768524,
+                "y": -3.2425127029418945,
+                "z": 3.1075143814086914,
+                "is_ai_predicted": true,
+                "id": "cbd04913-54fc-4820-a46b-3a2caa715725",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R4BT",
+                "x": -0.033520348370075226,
+                "y": -3.729240655899048,
+                "z": 3.141496181488037,
+                "is_ai_predicted": true,
+                "id": "0435bd2f-1faa-4ef0-af85-c9bc36ea3bd3",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R4PT",
+                "x": -0.8550350666046143,
+                "y": -3.7185046672821045,
+                "z": 2.7643654346466064,
+                "is_ai_predicted": true,
+                "id": "e81737d8-514d-4666-9f3f-0ef21a259db0",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R5BT",
+                "x": -0.19649067521095276,
+                "y": -3.044760227203369,
+                "z": 3.1657373905181885,
+                "is_ai_predicted": true,
+                "id": "8ed964e0-9098-4254-b5ef-defa554b957d",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R5PT",
+                "x": -0.36796218156814575,
+                "y": -2.523106575012207,
+                "z": 2.206488609313965,
+                "is_ai_predicted": true,
+                "id": "de664d5b-7ed0-45c6-b181-5d018ae615a1",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R6BD",
+                "x": -0.33973029255867004,
+                "y": -3.9312596321105957,
+                "z": 2.3940911293029785,
+                "is_ai_predicted": true,
+                "id": "16797b16-be8a-4195-80a4-76c0975795a2",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R6BM",
+                "x": -0.1539304554462433,
+                "y": -3.81815242767334,
+                "z": 3.366614818572998,
+                "is_ai_predicted": true,
+                "id": "b8c87068-78c7-4729-afbd-7b33c236ec48",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R6PD",
+                "x": 0.28966134786605835,
+                "y": -3.247648000717163,
+                "z": 2.5911433696746826,
+                "is_ai_predicted": true,
+                "id": "539be8dd-3130-41ef-9216-96036cd2cd6f",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R6PM",
+                "x": -0.18493404984474182,
+                "y": -3.3124313354492188,
+                "z": 2.436312437057495,
+                "is_ai_predicted": true,
+                "id": "3613c095-ea99-40fc-a0c3-066685fe08cd",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R7BD",
+                "x": -0.23929676413536072,
+                "y": -3.9136133193969727,
+                "z": 2.4854094982147217,
+                "is_ai_predicted": true,
+                "id": "1fef347b-b4bb-4c0c-adad-0cdd768d7768",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R7BM",
+                "x": -0.11163623631000519,
+                "y": -3.358593225479126,
+                "z": 2.677926540374756,
+                "is_ai_predicted": true,
+                "id": "5f8d1e3e-d218-4559-a5d9-dd7918de8b44",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R7PD",
+                "x": -0.40441733598709106,
+                "y": -4.117630958557129,
+                "z": 2.2742130756378174,
+                "is_ai_predicted": true,
+                "id": "dbda1382-84f5-4c51-9297-24bd69eff40e",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            },
+            {
+                "point_name": "R7PM",
+                "x": 0.8755375742912292,
+                "y": -3.380897045135498,
+                "z": 2.080773115158081,
+                "is_ai_predicted": true,
+                "id": "7b0f48ad-c319-4359-a6cf-507a8fb051a1",
+                "scan_id": "862ec872-0ab0-4ecc-9f37-bfa0af847c54"
+            }
+        ],
+        "Lower Arch Segment": [
+            {
+                "point_name": "L1D",
+                "x": -2.8027443885803223,
+                "y": 0.765751838684082,
+                "z": -2.0033388137817383,
+                "is_ai_predicted": true,
+                "id": "b8d47ea8-ff5e-4f4e-a3f7-74607f7f08d4",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L1M",
+                "x": -2.3122546672821045,
+                "y": 0.4435977637767792,
+                "z": -1.6515319347381592,
+                "is_ai_predicted": true,
+                "id": "d47ff1c5-f6a1-4d0d-bd27-fdd127a31088",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L1Mid",
+                "x": -1.6185927391052246,
+                "y": 0.7925092577934265,
+                "z": -1.3152943849563599,
+                "is_ai_predicted": true,
+                "id": "4df9b7e3-22d1-4c29-bb6d-e5e721329b66",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L2D",
+                "x": -2.5997626781463623,
+                "y": 1.946650743484497,
+                "z": -1.438783049583435,
+                "is_ai_predicted": true,
+                "id": "3f3f7daa-15e2-453f-8e7c-160f2a6a5ed9",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L2M",
+                "x": -2.004633665084839,
+                "y": 1.189820408821106,
+                "z": -1.5390719175338745,
+                "is_ai_predicted": true,
+                "id": "b8fdf51e-d2bb-4fc6-962c-cd5be9a6157b",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L2Mid",
+                "x": -2.2896783351898193,
+                "y": 0.9873471260070801,
+                "z": -1.0323060750961304,
+                "is_ai_predicted": true,
+                "id": "a4f072d9-3a67-43d4-be10-99ecf895c519",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L3M",
+                "x": -1.4743260145187378,
+                "y": 0.9324008822441101,
+                "z": -1.8608064651489258,
+                "is_ai_predicted": true,
+                "id": "f4503dd3-848f-49bb-8d80-f082801a2677",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L3Mid",
+                "x": -1.8078693151474,
+                "y": 1.4367752075195312,
+                "z": -0.9111925363540649,
+                "is_ai_predicted": true,
+                "id": "3b61978d-af59-47c6-953b-d696cd4f7e01",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L4BT",
+                "x": -1.3509529829025269,
+                "y": 1.7195980548858643,
+                "z": -1.7165051698684692,
+                "is_ai_predicted": true,
+                "id": "7c960728-71bd-438c-ad16-83ed4a50b526",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L4PT",
+                "x": -2.0701920986175537,
+                "y": 1.9466421604156494,
+                "z": -1.4604624509811401,
+                "is_ai_predicted": true,
+                "id": "1c9d8903-30e6-4e8d-8cc7-97794a4cbe66",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L5BT",
+                "x": -1.016383171081543,
+                "y": 1.347487449645996,
+                "z": -1.3917150497436523,
+                "is_ai_predicted": true,
+                "id": "ecc70f25-95fd-42b3-92dd-a3d1a1a15e1a",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L5PT",
+                "x": -1.4881963729858398,
+                "y": 1.5322145223617554,
+                "z": -1.8776180744171143,
+                "is_ai_predicted": true,
+                "id": "5974d65e-40e2-40c0-bf0d-1c208f63511b",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L6BD",
+                "x": -1.4232310056686401,
+                "y": 1.6365764141082764,
+                "z": -1.900191068649292,
+                "is_ai_predicted": true,
+                "id": "b7a02442-bad9-48c8-a9c9-0bd706ffe014",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L6BM",
+                "x": -0.9516565799713135,
+                "y": 1.3291562795639038,
+                "z": -1.3667497634887695,
+                "is_ai_predicted": true,
+                "id": "b47ab38b-c0e5-41bf-94a5-dfa3183b717c",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L6PD",
+                "x": -1.2394593954086304,
+                "y": 1.9126006364822388,
+                "z": -2.0894782543182373,
+                "is_ai_predicted": true,
+                "id": "db3db273-e6f5-48e2-a784-bdaf03ce8f16",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L6PM",
+                "x": -1.2194914817810059,
+                "y": 1.2963954210281372,
+                "z": -1.3869191408157349,
+                "is_ai_predicted": true,
+                "id": "bf47064c-796b-42c2-82e3-3b1e5a163a52",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L7BD",
+                "x": 0.1333046704530716,
+                "y": 1.9094175100326538,
+                "z": -1.9590673446655273,
+                "is_ai_predicted": true,
+                "id": "31029ada-fb98-4b86-a68b-19b0319af361",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L7BM",
+                "x": -0.6475884318351746,
+                "y": 1.9796348810195923,
+                "z": -1.9583137035369873,
+                "is_ai_predicted": true,
+                "id": "ae5c6bb0-3155-4a5b-95b2-d2b1d7665c2c",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L7PD",
+                "x": 0.7339245080947876,
+                "y": 1.971968650817871,
+                "z": -2.078566789627075,
+                "is_ai_predicted": true,
+                "id": "1486faa5-e3a8-403e-a1df-be9d8dadb7a3",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "L7PM",
+                "x": -0.3049718737602234,
+                "y": 1.3894754648208618,
+                "z": -1.644303798675537,
+                "is_ai_predicted": true,
+                "id": "da77e000-3d63-46c5-80b4-8d0f44db9c90",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R1D",
+                "x": -3.1369447708129883,
+                "y": 0.793361485004425,
+                "z": -0.8767912983894348,
+                "is_ai_predicted": true,
+                "id": "9475e445-453b-415b-9209-0dc9a321cdf0",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R1Lower",
+                "x": -2.2802047729492188,
+                "y": 0.5822659134864807,
+                "z": -0.9266390204429626,
+                "is_ai_predicted": true,
+                "id": "63a43275-cf58-4223-83f5-4ac1c05bea7e",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R1M",
+                "x": -2.568567991256714,
+                "y": 0.14709603786468506,
+                "z": -1.400439739227295,
+                "is_ai_predicted": true,
+                "id": "903b1cd4-5967-4a07-9c97-c8df9596d57e",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R1Mid",
+                "x": -2.3630211353302,
+                "y": 0.6633440852165222,
+                "z": -1.0259175300598145,
+                "is_ai_predicted": true,
+                "id": "348de0d2-fcd3-4da4-9484-57aa2591dec6",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R2D",
+                "x": -2.3340344429016113,
+                "y": 0.26795440912246704,
+                "z": -0.6775245666503906,
+                "is_ai_predicted": true,
+                "id": "c3244011-cbad-462c-8ac2-d6d852dcb742",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R2M",
+                "x": -2.879112720489502,
+                "y": 1.065713882446289,
+                "z": -0.7022749781608582,
+                "is_ai_predicted": true,
+                "id": "e33d6396-0894-4c43-bd94-2f003e2f83b2",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R2Mid",
+                "x": -2.2743239402770996,
+                "y": 0.33887332677841187,
+                "z": -1.4630749225616455,
+                "is_ai_predicted": true,
+                "id": "11018e89-58ea-4923-859b-951d2bc16c4c",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R3M",
+                "x": -2.5589020252227783,
+                "y": 0.11524366587400436,
+                "z": -1.3039137125015259,
+                "is_ai_predicted": true,
+                "id": "581423b0-b46e-4e2a-b091-937cad2ae694",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R3Mid",
+                "x": -2.449307441711426,
+                "y": -0.3006013035774231,
+                "z": -0.1975775808095932,
+                "is_ai_predicted": true,
+                "id": "20077d0a-dab8-462b-9586-d3d68014542e",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R4BT",
+                "x": -1.916803002357483,
+                "y": -0.3998878002166748,
+                "z": -0.7005178332328796,
+                "is_ai_predicted": true,
+                "id": "af0e8085-0d6f-40b8-ad01-aab8eca1b07b",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R4PT",
+                "x": -1.8529120683670044,
+                "y": -0.38769233226776123,
+                "z": -0.3723418414592743,
+                "is_ai_predicted": true,
+                "id": "c79ddb7f-9c23-4bb5-b2de-eb1e8fa0946e",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R5BT",
+                "x": -2.7092387676239014,
+                "y": -0.6928034424781799,
+                "z": -0.8440967798233032,
+                "is_ai_predicted": true,
+                "id": "df765926-5874-436e-9306-9162a35ea992",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R5PT",
+                "x": -2.061310291290283,
+                "y": 0.18127977848052979,
+                "z": 0.026784025132656097,
+                "is_ai_predicted": true,
+                "id": "2f6935f0-3b36-4b30-bb94-b7d3623feb2f",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R6BD",
+                "x": -2.1081924438476562,
+                "y": -0.8877037167549133,
+                "z": -0.23280856013298035,
+                "is_ai_predicted": true,
+                "id": "ed96de23-0804-4b37-9e49-193990fc956c",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R6BM",
+                "x": -1.756410837173462,
+                "y": -1.5432605743408203,
+                "z": -0.2864091098308563,
+                "is_ai_predicted": true,
+                "id": "a197a8d3-20cc-4a94-902e-a9cc19b17318",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R6PD",
+                "x": -1.4309825897216797,
+                "y": -0.5954626798629761,
+                "z": -0.668075680732727,
+                "is_ai_predicted": true,
+                "id": "349a786f-88dc-485d-8b50-333e99d78feb",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R6PM",
+                "x": -0.8715473413467407,
+                "y": -0.7874606847763062,
+                "z": -0.38738012313842773,
+                "is_ai_predicted": true,
+                "id": "3b0bed1f-cd8c-44f1-a601-534b5ca2ee84",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R7BD",
+                "x": -0.18678103387355804,
+                "y": -0.8750680685043335,
+                "z": -0.24663349986076355,
+                "is_ai_predicted": true,
+                "id": "d9dcf960-4a5a-4c81-a07f-8b09f6b7fbd5",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R7BM",
+                "x": -0.4767996668815613,
+                "y": -0.37149688601493835,
+                "z": 0.025601904839277267,
+                "is_ai_predicted": true,
+                "id": "c2542269-941f-48e5-8b40-e0e03760029a",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R7PD",
+                "x": 0.35225629806518555,
+                "y": -1.0079065561294556,
+                "z": -0.048975177109241486,
+                "is_ai_predicted": true,
+                "id": "3c8399ef-ddd3-4dd7-b058-1e6c7b8d1e73",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            },
+            {
+                "point_name": "R7PM",
+                "x": -0.20131875574588776,
+                "y": -1.250798225402832,
+                "z": -0.8861140012741089,
+                "is_ai_predicted": true,
+                "id": "3b860414-eba1-4f55-857b-1b0b5afe01c6",
+                "scan_id": "19accce9-3bf4-4968-aec7-4101713d8d4e"
+            }
+        ],
+        "Buccal Segment": [
+            {
+                "point_name": "LCover",
+                "x": -1.3414950370788574,
+                "y": -0.8522909879684448,
+                "z": -3.820436954498291,
+                "is_ai_predicted": true,
+                "id": "57742e8e-39dd-4d1a-8c90-8a463e460db6",
+                "scan_id": "2f55d447-0760-4909-ac08-dd9556072b0c"
+            },
+            {
+                "point_name": "OJ_LCP",
+                "x": -1.944385290145874,
+                "y": -0.40050819516181946,
+                "z": -3.295447826385498,
+                "is_ai_predicted": true,
+                "id": "c4d0796a-5927-4f02-88cd-3a46db77cc28",
+                "scan_id": "2f55d447-0760-4909-ac08-dd9556072b0c"
+            },
+            {
+                "point_name": "OJ_UCP",
+                "x": -1.6619409322738647,
+                "y": -1.4540377855300903,
+                "z": -3.873291015625,
+                "is_ai_predicted": true,
+                "id": "731148a6-edc5-48b0-b8bd-100605cc975c",
+                "scan_id": "2f55d447-0760-4909-ac08-dd9556072b0c"
+            }
+        ]
+    }
+}

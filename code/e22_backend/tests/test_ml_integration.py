@@ -177,7 +177,8 @@ def test_real_data_validation():
     calculate PAR score, and export landmark coordinates to JSON.
     """
     # 1. Configuration for real data files
-    real_data_dir = "set1"
+    # Note: Search in code/e22_backend/tests/clinical_data/
+    real_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clinical_data", "set1")
     scans_config = [
         {"type": "Upper Arch Segment", "file": "orthodontics_73_upper.stl"},
         {"type": "Lower Arch Segment", "file": "orthodontics_73_lower.stl"},
@@ -243,7 +244,7 @@ def test_real_data_validation():
         "landmarks": all_landmarks
     }
     
-    export_path = "real_data_landmarks_artifact.json"
+    export_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "docs", "ml-integration", "real_data_landmarks_artifact.json")
     with open(export_path, "w") as f:
         json.dump(export_data, f, indent=4)
     
@@ -260,7 +261,7 @@ def test_real_data_validation_set2():
     calculate PAR score, and export landmark coordinates to JSON.
     """
     # 1. Configuration for real data files (Patient 80)
-    real_data_dir = "set2"
+    real_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clinical_data", "set2")
     scans_config = [
         {"type": "Upper Arch Segment", "file": "orthodontics_80_upper.stl"},
         {"type": "Lower Arch Segment", "file": "orthodontics_80_lower.stl"},
@@ -326,7 +327,7 @@ def test_real_data_validation_set2():
         "landmarks": all_landmarks
     }
     
-    export_path = "real_data_landmarks_artifact_set2.json"
+    export_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "docs", "ml-integration", "real_data_landmarks_artifact_set2.json")
     with open(export_path, "w") as f:
         json.dump(export_data, f, indent=4)
     

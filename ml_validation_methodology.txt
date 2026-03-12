@@ -1,0 +1,31 @@
+# ML Landmark Detection: Validation Methodology
+
+## 1. Ground Truth Origin
+For the integration and performance tests in `test_ml_integration.py`, the Ground Truth originated from **Synthesized Structural Data**. 
+*   **Mechanism**: A dummy 3D geometry (Axis-Aligned Bounding Box) was generated using the `trimesh` library and exported to a temporary `.stl` file.
+*   **Rationale**: Since actual patient dental STL files and their corresponding expert-annotated labels (Landmark JSONs) were not present in the local workspace or the `e18-ml` legacy repository, the "Truth" used for this specific test was a **Structural Baseline**. 
+*   **Production equivalent**: In a clinical validation suite, the ground truth would be a static dataset of **expert-annotated landmark coordinates** stored in a secure JSON or PostgreSQL table.
+
+## 2. Mathematical Metric: Structural Coherency vs. Euclidean Distance
+*   **Used in Test**: **Type-Strict Coordinate Verification**. The test iterates through every predicted landmark returned by the TensorFlow model and asserts that the x, y, and z coordinates are valid `float` types.
+*   **Failure Detection**: This identifies common ML inference failures such as:
+    *   `NaN` (Not a Number) results from numerical instability.
+    *   `±Infinity` results from vanishing/exploding gradients in the legacy model.
+    *   Missing landmark names in the formatted output.
+*   **Dental Standard**: In a full accuracy validation, the **Euclidean Distance (L2 Norm)** is used:
+    `Error = sqrt((x_pred - x_true)^2 + (y_pred - y_true)^2 + (z_pred - z_true)^2)`
+    The test would compute the **Mean Radial Error (MRE)** across all points.
+
+## 3. Confidence Interval & Pass/Fail Logic
+*   **Current PASS/FAIL Logic**: The logic is binary based on **Inference Completeness**. A "FAIL" is triggered if any landmark fails to materialize or returns a non-numeric value.
+*   **Dental Geometry Context**: For 3D dental landmarks, the industry-standard clinical threshold for a "PASS" is typically defined as:
+    *   **Distance < 1.0mm**: High Precision (Expert level).
+    *   **Distance < 2.0mm**: Clinically Acceptable (Orthodontic standard).
+    *   **Distance > 2.0mm**: FAIL (Requires manual adjustment).
+*   **Logic Definition**: In our performance constraint test, the "PASS" was also gated by **Temporal Latency** (< 10 seconds), defining the system's operational readiness regardless of the specific coordinate accuracy.
+
+## 4. Transition to Qualitative Validation
+*   **Context**: As of March 2026, legacy 'Gold Standard' (manual) coordinate datasets for Patient 73 and Patient 80 were not located within the research repository.
+*   **Pivot**: To ensure clinical readiness, the validation strategy shifted from numerical MRE comparison to **Qualitative Anatomical Verification**.
+*   **Verification Mechanism**: The system generates per-patient JSON artifacts (e.g., [real_data_landmarks_artifact_set1.json](file:///d:/E22/e22-co2060-OrthoPAR-Web-Platform/real_data_landmarks_artifact_set1.json)).
+*   **Clinician Workflow**: These coordinates are intended to be overlaid on the original 3D clinical scans in a visualization suite (like the project's frontend) to verify anatomical landmark placement against clinical norms.

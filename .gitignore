@@ -3,3 +3,21 @@
 .venv/
 venv/
 __pycache__/
+
+# Machine Learning Artifacts
+training_tensors/
+fine_tuned_models/
+*.npy
+
+# 3D Dental Models
+*.obj
+
+# Python FastAPI Environment
+venv/
+env/
+__pycache__/
+venv_ml/
+
+# Next.js React Frontend
+node_modules/
+.next/

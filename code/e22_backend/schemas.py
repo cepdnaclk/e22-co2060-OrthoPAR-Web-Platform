@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
@@ -17,9 +17,7 @@ class LandmarkCreate(LandmarkBase):
 class LandmarkResponse(LandmarkBase):
     id: UUID
     scan_id: UUID
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Scans ---
 class ScanBase(BaseModel):
@@ -34,9 +32,7 @@ class ScanResponse(ScanBase):
     patient_id: UUID
     uploaded_at: datetime
     landmarks: List[LandmarkResponse] = []
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Par Scores ---
 class ParScoreBase(BaseModel):
@@ -57,9 +53,11 @@ class ParScoreResponse(ParScoreBase):
     id: UUID
     patient_id: UUID
     calculated_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_version: Optional[str] = None
+    model_config = ConfigDict(
+        from_attributes=True,
+        protected_namespaces=() # Fix "model_" conflict in model_version
+    )
 
 # --- Patients ---
 class PatientBase(BaseModel):
@@ -76,6 +74,16 @@ class PatientResponse(PatientBase):
     updated_at: datetime
     scans: List[ScanResponse] = []
     par_scores: List[ParScoreResponse] = []
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+# --- ML Models ---
+class MLModelBase(BaseModel):
+    name: str
+    version: str
+    is_active: bool = False
+
+class MLModelResponse(MLModelBase):
+    id: UUID
+    file_path: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)

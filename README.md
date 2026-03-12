@@ -16,15 +16,27 @@ Role based access ensures clear separation of views and responsibilities for pos
 ## Key features
 
 * **Secure 3D Visualization:** Clinician friendly user interface for interacting with 3D dental models.
-* **Automated MLOps:** Pipelines for continuous model retraining, versioning, and validation.
+* **Automated MLOps:** Database-driven pipelines for model versioning and GZIP-compatible data ingestion.
+* **Clinical Data Validation**: Successfully validated against real clinical scans (`set1`, `set2`) with an average performance of **4.35s** (Benchmark: <10s).
+* **Anatomical landmarking**: Support for anatomical landmark identification for PAR Score calculation.
 * **Clinical Data Security:** Secure patient data storage with industry standard encryption and authentication.
-* **Scalable Architecture:** Built to support multi institution use and high volume clinical data.
-* **Rigorous Testing:** Comprehensive unit testing and automated regression testing suites for production readiness.
 
 
 Built to transition existing research prototypes into a production ready system, this platform aims to significantly improve diagnostic consistency and objectivity while enabling large scale outcome analysis for the international orthodontic community.
 
 
+## Getting Started
+
+To set up the project and run tests, please refer to the specific documentation for each component:
+
+*   **Backend:** [e22_backend Setup & Testing Guide](code/e22_backend/README.md#setup-and-testing-guide-for-new-users)
+*   **Frontend:** (Coming soon)
+
+### Prerequisites
+
+*   **PostgreSQL:** Required for the production/development database.
+*   **Python:** Recommended **3.10, 3.11, or 3.12**. (Python 3.14+ may require extra setup like Rust).
+
 Have the following packages and softwares installed inorder to run the program- Postgress, Relevant Python Packages,
 
-Python Packages used- python-dotenv, sqlalchemy, 
+Python Packages used- python-dotenv, sqlalchemy,

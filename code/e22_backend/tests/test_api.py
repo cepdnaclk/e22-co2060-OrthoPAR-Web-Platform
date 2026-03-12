@@ -32,9 +32,16 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def setup_db():
+    # Clear overrides to prevent leakage from other test files
+    app.dependency_overrides.clear()
+    app.dependency_overrides[get_db] = override_get_db
+    
+    # Ensure tables are created
     Base.metadata.create_all(bind=engine)
     yield
+    # Cleanup
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.clear()
 
 def test_read_main():
     response = client.get("/")
@@ -52,12 +59,15 @@ def test_create_patient():
     assert "id" in data
 
 def test_get_patients():
+    # Clear and recreate to be absolutely sure
     client.post("/api/patients/", json={"name": "Alice", "treatment_status": "Pre-Treatment"})
     response = client.get("/api/patients/")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 1
-    assert data[0]["name"] == "Alice"
+    
+    # Robust check: Find Alice in the list regardless of index
+    alice_found = any(p["name"] == "Alice" for p in data)
+    assert alice_found, f"Expected to find Alice in {data}"
 
 def test_create_landmarks_and_calculate():
     # 1. Create Patient

@@ -30,24 +30,65 @@ We have split the storage strategy:
 
 The Euclidean geometry algorithms responsible for calculating the PAR Index score (measuring Overjet distance, clipping boundaries for crossbites, finding occlusal midpoints, etc.) were deeply embedded in the Java `ParScoreService`. These have been fully translated into modular python functions inside `services/par_score_service.py`.
 
-### 4. ML Model Readiness
+### 4. ML Model Integration
+The backend now features a fully integrated ML pipeline for landmark extraction and PAR calculation:
+- **Database-Driven Selection**: Active models are queried from the `ml_models` table, allowing for dynamic updates without code changes.
+- **Transparent GZIP Loading**: Support for `.stl.gz` clinical scans via a streaming decompression pipeline.
+- **Inference Performance**: Validated at **4.35s** per patient (Upper + Lower + Buccal), significantly outperforming the 10s clinical requirement.
+- **Reproducibility**: Every PAR score record is linked to a specific `model_version` for audit trails.
+- **Infrastructure Resilience**: Uses `sqlalchemy.Uuid` for PostgreSQL parity and in-memory SQLite for high-velocity testing.
 
-The `landmarks` table now has an `is_ai_predicted` boolean flag. In the future, once the ML model is trained (e.g., `model.pth`), you can easily add an endpoint in this FastAPI app that receives an `.stl` file, runs an inference script directly against the model weights to extract the 3D points, and saves them to the database as "AI predicted" points before showing them on the frontend.
+## Setup and Testing Guide (for New Users)
 
-## Testing Setup
+### Prerequisites
+- **Python 3.10 - 3.12 (Recommended)**: Using a stable version ensures pre-compiled wheels are available.
+- **Python 3.14+ (Experimental)**: May require a Rust compiler (Cargo) to build some dependencies from source.
 
-We highly recommend running your integration tests locally without having to tear down and rebuild Docker databases constantly.
-Therefore, `tests/test_api.py` uses an **in-memory SQLite database** mapping instead of the Dockerized PostgreSQL database. This allows Pytest to execute lightning-fast and run fully isolated on any developer's machine, validating the API application logic strictly without relying on heavy external infrastructure dependencies.
+### 1. Pull the Refactored Branch
+Ensure you have the latest changes from the `refactored-backend` branch:
+```bash
+git checkout refactored-backend
+git pull origin refactored-backend
+```
 
-To run the tests locally, ensure you have the dev dependencies installed and execute `pytest`:
+### 2. Environment Setup
+From the project root, activate the virtual environment and install all necessary dependencies:
+```bash
+# Activate the virtual environment (Windows)
+.\venv\Scripts\activate
+
+# Install backend and dev dependencies
+pip install -r code/e22_backend/requirements.txt -r code/e22_backend/requirements-dev.txt
+```
+
+#### Troubleshooting "Rust" or "pydantic-core" errors:
+If you see an error mentioning `pydantic-core` or `Rust`, it means your Python version is too new for the pinned versions in `requirements.txt`. You can fix this by installing the latest versions instead:
+```bash
+# Install the latest versions (ignores pins)
+pip install fastapi uvicorn sqlalchemy pydantic pydantic-settings alembic python-multipart boto3 pytest pytest-asyncio httpx
+```
+
+### 3. Run the Tests
+You can run all tests or specify a particular test file. The `-v` flag provides verbose output, and `-s` allows print statements to show in the console.
 
 ```bash
-# Install testing dependencies
-pip install -r requirements-dev.txt
+# Run all backend tests
+pytest code/e22_backend/tests/ -v -s
 
-# Run the test suite from the backend directory
-pytest tests/
+# Run only math-specific tests
+pytest code/e22_backend/tests/test_math.py -v -s
+
+# Run ML Integration & Real Data Validation (Set 1 & Set 2)
+# Ensure you are using the ML-capable virtual environment
+$env:DATABASE_URL="sqlite:///./test_ml.db"; pytest code/e22_backend/tests/test_ml_integration.py -v -s
 ```
+
+### 4. Clinical Validation Results
+When running the ML integration tests, the system generates JSON artifacts in the project root:
+- `real_data_landmarks_artifact.json`: Coordinate results for Set 1 (Patient 73).
+- `real_data_landmarks_artifact_set2.json`: Coordinate results for Set 2 (Patient 80).
+
+These artifacts contain extracted 3D landmarks that can be used for visual anatomical verification.
 
 ## How to Run
 

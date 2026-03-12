@@ -58,8 +58,12 @@ From the project root, activate the virtual environment and install all necessar
 # Activate the virtual environment (Windows)
 .\venv\Scripts\activate
 
-# Install backend and dev dependencies
+# Install standard backend and dev dependencies
 pip install -r code/e22_backend/requirements.txt -r code/e22_backend/requirements-dev.txt
+
+# (Optional) Install ML Extension for Clinical Validation
+# Required for running test_ml_integration.py (TensorFlow, Trimesh, etc.)
+pip install -r code/e22_backend/requirements-ml.txt
 ```
 
 #### Troubleshooting "Rust" or "pydantic-core" errors:
@@ -80,7 +84,7 @@ pytest code/e22_backend/tests/ -v -s
 pytest code/e22_backend/tests/test_math.py -v -s
 
 # Run ML Integration & Real Data Validation (Set 1 & Set 2)
-# Ensure you are using the ML-capable virtual environment
+# Ensure requirements-ml.txt is installed!
 $env:DATABASE_URL="sqlite:///./test_ml.db"; pytest code/e22_backend/tests/test_ml_integration.py -v -s
 ```
 

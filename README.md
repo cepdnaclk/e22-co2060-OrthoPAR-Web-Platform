@@ -45,10 +45,10 @@ The backend now features a fully integrated ML pipeline for landmark extraction 
 - **Python 3.14+ (Experimental)**: May require a Rust compiler (Cargo) to build some dependencies from source.
 
 ### 1. Pull the Refactored Branch
-Ensure you have the latest changes from the `refactored-backend` branch:
+Ensure you have the latest changes from the `refactored-backend-with-ml` branch:
 ```bash
-git checkout refactored-backend
-git pull origin refactored-backend
+git checkout refactored-backend-with-ml
+git pull origin refactored-backend-with-ml
 ```
 
 ### 2. Environment Setup

@@ -1,5 +1,5 @@
 # ML Stack Requirements
-tensorflow-cpu==2.15.0
+tensorflow-cpu>=2.15.0
 trimesh==4.0.5
 numpy==1.26.2
 gzip-reader==0.1.0

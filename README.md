@@ -56,7 +56,7 @@ git lfs pull
 From the project root, activate the virtual environment and install all necessary dependencies:
 ```bash
 # Activate the virtual environment (Windows)
-python -m venv venv
+python -m venv venv (or py -3.12 -m venv venv)
 .\venv\Scripts\activate
 
 # Install standard backend and dev dependencies (FastAPI, SQLAlchemy, psycopg2-binary, etc.)

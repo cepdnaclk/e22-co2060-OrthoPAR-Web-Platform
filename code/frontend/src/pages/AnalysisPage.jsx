@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PAR_WEIGHTS, MOCK_AI_VALUES, C, STATUS_COLORS, calcPARPoints, getScoreStatus } from "../utils/constants.js";
-import { Icons, Mock3DViewer } from "../utils/components.jsx";
+import { Icons } from "../utils/components.jsx";
+import ThreeViewer from "../components/ThreeViewer.jsx";
 
 function AnalysisStudio() {
   const [showUpper, setShowUpper] = useState(true);
@@ -63,7 +64,7 @@ function AnalysisStudio() {
           </div>
         </div>
         <div className="viewer-canvas">
-          <Mock3DViewer showUpper={showUpper} showLower={showLower} highlightLandmarks={highlightLandmarks} />
+          <ThreeViewer showUpper={showUpper} showLower={showLower} highlightLandmarks={highlightLandmarks} />
           <div className="viewer-badge">
             Scan: <span>PT-2041.stl</span> &nbsp;·&nbsp; Vertices: <span>48,203</span>
           </div>

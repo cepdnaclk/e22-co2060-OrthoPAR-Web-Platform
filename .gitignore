@@ -1,5 +1,33 @@
-# Add your own files to be ignored from git in here
-.env
-.venv/
-venv/
+# Python
 __pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+venv/
+venv_ml/
+.venv/
+
+# Environment files
+.env
+.env.local
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test artifacts
+test_files/
+test_data/
+
+# Upload artifacts
+uploads/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

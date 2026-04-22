@@ -1,12 +1,19 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
-import models, schemas, auth
+import models, schemas, auth, storage, crud
+import os
+
+from app.routes import analysis
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="PAR Authentication API")
+app = FastAPI(title="OrthoPAR Integrated API")
+app.include_router(analysis.router, prefix="/api")
+
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+ALLOWED_EXTENSIONS = {".stl", ".obj"}
 
 # ---------------- REGISTER ----------------
 @app.post("/register")
@@ -56,7 +63,61 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     return {"access_token": access_token, "token_type": "bearer"}
 
+# ---------------- MODEL UPLOAD ----------------
+@app.post("/models/upload", response_model=schemas.ModelResponse)
+async def upload_model(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint to upload 3D models (.stl, .obj).
+    - Validates file type and size.
+    - Saves file locally per user.
+    - Stores metadata in PostgreSQL.
+    """
+    # 1. Validate File Extension
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid file type. Only {', '.join(ALLOWED_EXTENSIONS)} are allowed."
+        )
+
+    # 2. Validate File Size (check headers first for early exit)
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+
+    try:
+        # 3. Save file locally
+        model_id, file_path = await storage.storage_manager.save_file(file, current_user.id)
+
+        # 4. Save metadata to Database
+        crud.save_model_metadata(
+            db=db,
+            user_id=current_user.id,
+            model_id=model_id,
+            file_name=file.filename,
+            file_path=file_path,
+            file_type=file_ext.strip(".")
+        )
+
+        return {
+            "model_id": model_id,
+            "file_name": file.filename,
+            "status": "uploaded"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Generic error handler
+        print(f"Unexpected error during upload: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred during upload.")
+
 # ---------------- PROTECTED ROUTE EXAMPLE ----------------
 @app.get("/users/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+# TODO: Migrate seed_uploads.py dev utility once E2E verification passes

@@ -24,7 +24,47 @@ Role based access ensures clear separation of views and responsibilities for pos
 
 Built to transition existing research prototypes into a production ready system, this platform aims to significantly improve diagnostic consistency and objectivity while enabling large scale outcome analysis for the international orthodontic community.
 
+## Setup & Installation
 
-Have the following packages and softwares installed inorder to run the program- Postgress, Relevant Python Packages,
+### Prerequisites
+- **Python 3.10+**
+- **PostgreSQL** (running locally or accessible via network)
+- **Git LFS** (Large File Storage) installed on your machine
 
-Python Packages used- python-dotenv, sqlalchemy, 
+> [!IMPORTANT]
+> **Git LFS Required:** The ML model files (`.h5`) are stored in Git LFS. Run `git lfs pull` after cloning the repository to download the actual model weights. The server will start without them, but ML landmark extraction will fail.
+
+### Installation Steps
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd OrthoPAR-Web-Platform
+   ```
+
+2. **Set up Virtual Environment:**
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate  # Windows
+   source venv/bin/activate  # Linux/Mac
+   ```
+
+3. **Install Dependencies:**
+   ```bash
+   pip install -r code/backend/requirements.txt
+   ```
+
+4. **Configure Environment:**
+   - Copy `code/backend/.env.example` to `code/backend/.env`.
+   - Update the variables (especially `DATABASE_URL` and `SECRET_KEY`) with your local credentials.
+
+5. **Run the Server:**
+   ```bash
+   uvicorn main:app --reload --app-dir code/backend
+   ```
+
+### Running Tests
+To verify the math and clinical logic:
+```bash
+pytest code/backend/tests/ -v -s
+```

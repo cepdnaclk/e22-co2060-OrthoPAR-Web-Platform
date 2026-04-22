@@ -5,9 +5,12 @@ from database import engine, Base, get_db
 import models, schemas, auth, storage, crud
 import os
 
+from app.routes import analysis
+
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="PAR Authentication API")
+app = FastAPI(title="OrthoPAR Integrated API")
+app.include_router(analysis.router, prefix="/api")
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 ALLOWED_EXTENSIONS = {".stl", ".obj"}
@@ -116,3 +119,5 @@ async def upload_model(
 @app.get("/users/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+# TODO: Migrate seed_uploads.py dev utility once E2E verification passes

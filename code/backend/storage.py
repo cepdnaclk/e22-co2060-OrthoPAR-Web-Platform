@@ -16,7 +16,7 @@ class LocalStorage:
         Saves a file to /uploads/{user_id}/{model_id}_{original_file_name}
         Returns the model_id and the full local path.
         """
-        model_id = str(uuid.uuid4())
+        model_id = uuid.uuid4()
         user_dir = os.path.join(self.base_upload_dir, str(user_id))
         
         # Ensure user directory exists

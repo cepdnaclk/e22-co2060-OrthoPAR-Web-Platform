@@ -14,6 +14,7 @@ export default function App() {
   const { user, loading, logout } = useAuth();
   const [screen, setScreen] = useState("dashboard");
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [activePatientId, setActivePatientId] = useState(null);
 
   // While checking stored token, show nothing (avoid flash)
   if (loading) {
@@ -43,7 +44,8 @@ export default function App() {
     { id: "reports", label: "Reports", icon: Icons.reports },
   ];
 
-  const handleAnalyze = () => {
+  const handleAnalyze = (patientId) => {
+    setActivePatientId(patientId);
     setScreen("studio");
     setActiveNav("studio");
   };
@@ -135,7 +137,7 @@ export default function App() {
 
           {screen === "studio" && (
             <div style={{ flex: 1, overflow: "hidden" }} className="fade-in">
-              <AnalysisStudio />
+              <AnalysisStudio patientId={activePatientId} />
             </div>
           )}
 

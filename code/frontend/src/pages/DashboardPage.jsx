@@ -1,17 +1,23 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { C, STATUS_COLORS, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
-import { getPatients } from "../utils/api.js";
+import { getPatients, uploadScan } from "../utils/api.js";
+import "./DashboardPage.css"; // Moved inline styles into this file
 
 function Dashboard({ onAnalyze }) {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState("");
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Upload Flow State
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [scans, setScans] = useState({ upper: null, lower: null, buccal: null });
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [uploadError, setUploadError] = useState("");
+
+  // --- Data Fetching ---
+  // Load patients immediately on mount to populate the dropdown
   useEffect(() => {
     getPatients()
       .then(setPatients)
@@ -19,23 +25,46 @@ function Dashboard({ onAnalyze }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer?.files?.[0] || e.target?.files?.[0];
-    if (file) { setUploadedFile(file); setProgress(0); }
-  }, []);
-
-  const handleAnalyze = () => {
-    setIsProcessing(true);
-    let p = 0;
-    const iv = setInterval(() => {
-      p += Math.random() * 18 + 5;
-      if (p >= 100) { p = 100; clearInterval(iv); setTimeout(() => onAnalyze(), 400); }
-      setProgress(Math.min(p, 100));
-    }, 150);
+  // --- Handlers ---
+  // Update state when a new file is picked for a specific jaw segment
+  const handleFileChange = (type, file) => {
+    setScans(prev => ({ ...prev, [type]: file }));
   };
 
+  // Validate and orchestrate the upload of all three required scans
+  const handleUploadAndAnalyze = async () => {
+    if (!selectedPatientId) return setUploadError("Please select a patient first.");
+    if (!scans.upper || !scans.lower || !scans.buccal) return setUploadError("Please select all 3 scans.");
+    
+    setUploading(true);
+    setUploadError("");
+    
+    try {
+      // Sequentially upload each model segment to the selected patient's bucket
+      setUploadProgress("Uploading Upper Arch...");
+      await uploadScan(selectedPatientId, "Upper Arch Segment", scans.upper);
+      
+      setUploadProgress("Uploading Lower Arch...");
+      await uploadScan(selectedPatientId, "Lower Arch Segment", scans.lower);
+      
+      setUploadProgress("Uploading Buccal Segment...");
+      await uploadScan(selectedPatientId, "Buccal Segment", scans.buccal);
+      
+      setUploadProgress("Success! Starting Analysis...");
+      
+      // Delay briefly to show success, then jump straight into Analysis Studio
+      setTimeout(() => {
+        setUploading(false);
+        onAnalyze(selectedPatientId); 
+      }, 800);
+      
+    } catch (err) {
+      setUploadError(err.message);
+      setUploading(false);
+    }
+  };
+
+  // Filter logic for recent activity table
   const filtered = patients.filter(p =>
     p.id.toLowerCase().includes(search.toLowerCase()) || 
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -60,62 +89,80 @@ function Dashboard({ onAnalyze }) {
 
       <div className="upload-card">
         <div className="section-header">
-          <div className="section-title">Quick Upload</div>
+          <div className="section-title">New Scan Analysis</div>
         </div>
-        <div
-          className={`drop-zone${isDragOver ? " drag-over" : ""}`}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => document.getElementById("file-input").click()}
+        
+        {/* Step 1: Patient Selection Box */}
+        <div className="dashboard-section-wrap">
+          <label className="dashboard-label">
+            1. Select Patient
+          </label>
+          <select 
+            className="search-input dashboard-select" 
+            value={selectedPatientId}
+            onChange={e => setSelectedPatientId(e.target.value)}
+            disabled={uploading}
+          >
+            <option value="">-- Choose a patient --</option>
+            {patients.map(p => (
+              <option key={p.id} value={p.id}>{p.name} (ID: {p.id.split("-")[0]})</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Step 2: Extracting STL Files via File Inputs */}
+        <div className="dashboard-section-wrap">
+          <label className="dashboard-label">
+            2. Upload 3D Intraoral Scans
+          </label>
+          
+          <div className="scan-picker-list">
+            {[
+              { id: 'upper', label: "Upper Arch" },
+              { id: 'lower', label: "Lower Arch" },
+              { id: 'buccal', label: "Buccal Segment" },
+            ].map(scan => (
+              <div key={scan.id} className="scan-picker-item">
+                <label className={`btn-secondary scan-picker-btn ${uploading ? "disabled" : ""}`}>
+                  Select File
+                  <input 
+                    type="file" 
+                    accept=".stl,.obj,.ply" 
+                    style={{ display: "none" }}
+                    disabled={uploading}
+                    onChange={(e) => { if(e.target.files[0]) handleFileChange(scan.id, e.target.files[0]) }}
+                  />
+                </label>
+                <div className={`scan-picker-status ${scans[scan.id] ? "selected" : ""}`}>
+                  {scans[scan.id] ? (
+                    <span className="scan-status-success">
+                      <span>✓</span> {scans[scan.id].name}
+                    </span>
+                  ) : (
+                    `Missing ${scan.label} (.STL)`
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Feedback / Progress Messages */}
+        {uploadError && <div className="dashboard-error-msg">{uploadError}</div>}
+        {uploading && (
+          <div className="dashboard-progress-msg">
+            <span className="processing" /> {uploadProgress}
+          </div>
+        )}
+
+        <button 
+          className="analyze-btn dashboard-analyze-btn" 
+          disabled={!selectedPatientId || !scans.upper || !scans.lower || !scans.buccal || uploading}
+          onClick={handleUploadAndAnalyze}
         >
-          <input
-            id="file-input" type="file" accept=".stl,.obj,.ply"
-            style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files[0]; if (f) { setUploadedFile(f); setProgress(0); }}}
-          />
-          <div className="drop-icon">{Icons.upload}</div>
-          {uploadedFile ? (
-            <>
-              <div className="drop-title" style={{ color: C.blue }}>✓ {uploadedFile.name}</div>
-              <div className="drop-sub">File ready for analysis</div>
-            </>
-          ) : (
-            <>
-              <div className="drop-title">Drag & Drop 3D Oral Scan here to start</div>
-              <div className="drop-sub">or click to browse your files</div>
-            </>
-          )}
-          <div className="drop-formats">
-            {[".STL", ".OBJ", ".PLY"].map(f => <span key={f} className="format-badge">{f}</span>)}
-          </div>
-        </div>
-
-        {isProcessing && (
-          <div className="upload-progress fade-in">
-            <div className="progress-label">
-              <span className={progress < 100 ? "processing" : ""}>
-                {progress < 100 ? "Analyzing landmarks & computing PAR metrics…" : "Analysis complete!"}
-              </span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <div className="progress-bar-wrap">
-              <div className="progress-bar" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        )}
-
-        {uploadedFile && !isProcessing && (
-          <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
-            <button className="analyze-btn" onClick={handleAnalyze}>
-              {Icons.scan}
-              Run PAR Analysis
-            </button>
-            <button className="btn-secondary" style={{ flex: "none" }} onClick={() => { setUploadedFile(null); setProgress(0); }}>
-              Remove
-            </button>
-          </div>
-        )}
+          {Icons.upload}
+          {uploading ? "Uploading Scans..." : "Upload & Analyze"}
+        </button>
       </div>
 
       <div className="table-card">

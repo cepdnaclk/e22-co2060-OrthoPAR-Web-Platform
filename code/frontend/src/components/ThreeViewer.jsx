@@ -1,33 +1,82 @@
-import React, { useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sphere, Text } from '@react-three/drei';
+import React, { useState, Suspense, useMemo } from 'react';
+import { Canvas, useLoader } from '@react-three/fiber';
+import { OrbitControls, Sphere, Text, Html } from '@react-three/drei';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
-function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark }) {
-  // A placeholder representing an upper and lower jaw (arch shape using partial Torus)
+// Renders an actual STL mesh dynamically fetched securely from the backend
+function STLMesh({ url, position, color, onAddLandmark }) {
+  const geometry = useLoader(STLLoader, url, (loader) => {
+    const token = localStorage.getItem("orthopar_token");
+    if (token) {
+      loader.setRequestHeader({ 'Authorization': `Bearer ${token}` });
+    }
+  });
+
+  // Center the geometry around its local origin to ensure it rotates correctly
+  useMemo(() => {
+    geometry.computeVertexNormals();
+    geometry.center();
+  }, [geometry]);
+
+  return (
+    <mesh 
+      position={position} 
+      onClick={onAddLandmark} 
+      castShadow 
+      receiveShadow
+      scale={[0.1, 0.1, 0.1]} // Scaled down as raw STLs are often huge mathematically
+      // Rotate the jaw out of conventional STL Z-up bounds to match the viewer
+      rotation={[0, 0, 0]} 
+    >
+      <primitive object={geometry} attach="geometry" />
+      <meshStandardMaterial color={color} roughness={0.4} />
+    </mesh>
+  );
+}
+
+// Fallback mesh shown while the massive STL binaries are downloading
+function FallbackMesh({ message }) {
+  return (
+    <group>
+      <Html center>
+        <div style={{ color: "#3B82F6", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: "white", padding: "4px 8px", borderRadius: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          {message}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans }) {
+  const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
+  const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
+
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}> {/* Rotate to lay flat */}
-      {showUpper && (
-        <mesh 
-            position={[0, 0, 0.5]} 
-            onClick={onAddLandmark}
-            castShadow 
-            receiveShadow
-        >
-          <torusGeometry args={[3, 0.8, 16, 100, Math.PI]} />
-          <meshStandardMaterial color="#E8F4FD" roughness={0.4} />
-        </mesh>
+      {showUpper && upperScanUrl ? (
+        <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
+          <STLMesh 
+            url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
+            position={[0, 0, 1.5]} 
+            color="#E8F4FD"
+            onAddLandmark={onAddLandmark}
+          />
+        </Suspense>
+      ) : showUpper && (
+         <FallbackMesh message="No Upper Arch found" />
       )}
-      {showLower && (
-        <mesh 
-            position={[0, 0, -0.5]} 
-            rotation={[0, 0, Math.PI]} 
-            onClick={onAddLandmark}
-            castShadow 
-            receiveShadow
-        >
-          <torusGeometry args={[2.8, 0.8, 16, 100, Math.PI]} />
-          <meshStandardMaterial color="#F0F9FF" roughness={0.4} />
-        </mesh>
+
+      {showLower && lowerScanUrl ? (
+        <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
+          <STLMesh 
+            url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
+            position={[0, 0, -1.5]} 
+            color="#F0F9FF"
+            onAddLandmark={onAddLandmark}
+          />
+        </Suspense>
+      ) : showLower && (
+         <FallbackMesh message="No Lower Arch found" />
       )}
       
       {/* Predefined visual markers when highlightLandmarks is active */}
@@ -62,7 +111,7 @@ function LandmarkLabel({ position, text }) {
   );
 }
 
-export default function ThreeViewer({ showUpper, showLower, highlightLandmarks }) {
+export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [] }) {
   const [landmarks, setLandmarks] = useState([]);
 
   const handlePointerDown = (e) => {
@@ -83,6 +132,7 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks }
                 showLower={showLower} 
                 highlightLandmarks={highlightLandmarks}
                 onAddLandmark={handlePointerDown} 
+                scans={scans}
             />
 
             {/* Render manually added landmarks */}

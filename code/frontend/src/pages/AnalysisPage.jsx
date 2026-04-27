@@ -148,7 +148,12 @@ function AnalysisStudio({ patientId }) {
           </div>
         </div>
         <div className="viewer-canvas">
-          <ThreeViewer showUpper={showUpper} showLower={showLower} highlightLandmarks={highlightLandmarks} />
+          <ThreeViewer 
+            showUpper={showUpper} 
+            showLower={showLower} 
+            highlightLandmarks={highlightLandmarks} 
+            scans={patient?.scans || []} 
+          />
           <div className="viewer-badge">
             Status: <span>{aiValues.model_version === "manual" ? "Manual Inference" : "AI Predicted"}</span>
           </div>

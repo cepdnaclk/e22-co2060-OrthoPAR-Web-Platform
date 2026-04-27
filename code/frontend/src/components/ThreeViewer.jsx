@@ -109,7 +109,12 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
                     />
 
                     {/* Render pre-calculated Backend AI landmarks aligned precisely in the same transformed coordinate space */}
-                    {highlightLandmarks && scans.flatMap(s => s.landmarks || []).map((lm, idx) => {
+                    {highlightLandmarks && scans.flatMap(s => {
+                        // Dynamically hide landmarks if their parent anatomical mesh is toggled off by the user
+                        if (s.file_type === "Upper Arch Segment" && !showUpper) return [];
+                        if (s.file_type === "Lower Arch Segment" && !showLower) return [];
+                        return s.landmarks || [];
+                    }).map((lm, idx) => {
                         // ML models often output predictions in Centimeters (cm) or normalized scales to improve gradient stability.
                         // The raw STL meshes are natively structured in Millimeters (mm). 
                         // We must multiply the predicted coordinate vectors by 10 to scale them accurately onto the physical geometry!

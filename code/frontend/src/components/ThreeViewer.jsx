@@ -54,7 +54,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
         <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
           <STLMesh 
             url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
-            position={[0, 0, 1.5]} 
+            position={[0, 0, 0]} 
             color="#E8F4FD"
             onAddLandmark={onAddLandmark}
           />
@@ -67,7 +67,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
         <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
           <STLMesh 
             url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
-            position={[0, 0, -1.5]} 
+            position={[0, 0, 0]} 
             color="#F0F9FF"
             onAddLandmark={onAddLandmark}
           />
@@ -109,11 +109,32 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
                     />
 
                     {/* Render pre-calculated Backend AI landmarks aligned precisely in the same transformed coordinate space */}
-                    {highlightLandmarks && scans.flatMap(s => s.landmarks || []).map((lm, idx) => (
-                        <Sphere key={`ai-lm-${lm.id || idx}`} position={[lm.x, lm.y, lm.z]} args={[0.8, 16, 16]}>
-                            <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
-                        </Sphere>
-                    ))}
+                    {highlightLandmarks && scans.flatMap(s => s.landmarks || []).map((lm, idx) => {
+                        // ML models often output predictions in Centimeters (cm) or normalized scales to improve gradient stability.
+                        // The raw STL meshes are natively structured in Millimeters (mm). 
+                        // We must multiply the predicted coordinate vectors by 10 to scale them accurately onto the physical geometry!
+                        const ML_SCALE = 10.0;
+                        const pos = [lm.x * ML_SCALE, lm.y * ML_SCALE, lm.z * ML_SCALE];
+
+                        return (
+                            <group key={`ai-lm-${lm.id || idx}`} position={pos}>
+                                <Sphere args={[0.6, 16, 16]}>
+                                    <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
+                                </Sphere>
+                                {/* Display the physical anatomy name (e.g., L1M, R2D) floating above the sphere */}
+                                <Text 
+                                    position={[0, 1.2, 0]} 
+                                    rotation={[Math.PI / 2, 0, 0]} 
+                                    fontSize={1.4} 
+                                    color="#FCD34D" 
+                                    outlineWidth={0.08} 
+                                    outlineColor="#1E293B"
+                                >
+                                    {lm.point_name}
+                                </Text>
+                            </group>
+                        );
+                    })}
 
                     {/* Render manually interacted frontend landmarks */}
                     {landmarks.map((pos, idx) => (

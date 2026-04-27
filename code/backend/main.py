@@ -9,6 +9,33 @@ from app.routes import analysis
 
 Base.metadata.create_all(bind=engine)
 
+# --- Auto-seed ML Model Record ---
+# Ensures the ML pipeline works out of the box for anyone starting the server.
+# If no active ML model record exists, create one pointing to the default ml_models/ directory.
+def _seed_ml_model():
+    db = next(get_db())
+    try:
+        active_model = db.query(models.MLModel).filter(models.MLModel.is_active == True).first()
+        if not active_model:
+            seed = models.MLModel(
+                name="Default Landmark Predictor",
+                version="v1.0.0",
+                file_path="ml_models",
+                is_active=True
+            )
+            db.add(seed)
+            db.commit()
+            print("[Startup] Seeded default ML model record (ml_models/)")
+        else:
+            print(f"[Startup] Active ML model found: {active_model.name} ({active_model.version})")
+    except Exception as e:
+        print(f"[Startup] ML model seeding skipped: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+_seed_ml_model()
+
 app = FastAPI(title="OrthoPAR Integrated API")
 app.include_router(analysis.router, prefix="/api")
 

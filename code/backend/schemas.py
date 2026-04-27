@@ -74,6 +74,8 @@ class ParScoreResponse(ParScoreBase):
     patient_id: UUID
     calculated_at: datetime
     model_version: Optional[str] = None
+    is_partial: bool = False
+    missing_segments: List[str] = []
     model_config = ConfigDict(
         from_attributes=True,
         protected_namespaces=()

@@ -5,13 +5,36 @@ import PatientsPage from './pages/PatientsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
+import { useAuth } from './context/AuthContext.jsx';
 import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
 import { styles } from "./utils/styles.js";
 
 export default function App() {
+  const { user, loading, logout } = useAuth();
   const [screen, setScreen] = useState("dashboard");
   const [activeNav, setActiveNav] = useState("dashboard");
+
+  // While checking stored token, show nothing (avoid flash)
+  if (loading) {
+    return (
+      <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap'); body { font-family: 'DM Sans', sans-serif; background: #F4F7FB; }`}</style>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: C.textMuted, fontSize: 14 }}>
+          Loading…
+        </div>
+      </>
+    );
+  }
+
+  // Not authenticated — show auth page
+  if (!user) return <AuthPage />;
+
+  // Derive initials and display name from real user
+  const initials = user.full_name
+    ? user.full_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+    : user.email.slice(0, 2).toUpperCase();
+  const displayName = user.full_name || user.email;
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Icons.home },
@@ -26,10 +49,11 @@ export default function App() {
   };
 
   const titles = {
-    dashboard: { title: "Dashboard", sub: "Welcome back, Dr. Chen · Feb 17, 2025" },
-    studio: { title: "Analysis Studio", sub: "Interactive PAR Index Calculator · PT-2041" },
+    dashboard: { title: "Dashboard", sub: `Welcome back, ${displayName}` },
+    studio: { title: "Analysis Studio", sub: "Interactive PAR Index Calculator" },
     patients: { title: "Patients", sub: "All patient records" },
     reports: { title: "Reports", sub: "Saved analysis reports" },
+    settings: { title: "Settings", sub: "Account & preferences" },
   };
 
   return (
@@ -62,18 +86,27 @@ export default function App() {
 
           <div style={{ marginTop: "auto" }}>
             <div className="nav-section" style={{ marginBottom: 0 }}>
-              <button className="nav-item" style={{ marginBottom: 0 }} onClick={() => { setActiveNav("settings"); setScreen("settings"); }}>
+              <button className="nav-item" style={{ marginBottom: 4 }} onClick={() => { setActiveNav("settings"); setScreen("settings"); }}>
                 {Icons.settings}
                 Settings
+              </button>
+              <button
+                className="nav-item"
+                style={{ marginBottom: 0, color: C.red }}
+                onClick={logout}
+                id="logout-btn"
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign Out
               </button>
             </div>
           </div>
 
           <div className="sidebar-footer">
-            <div className="avatar">DC</div>
+            <div className="avatar">{initials}</div>
             <div>
-              <div className="avatar-name">Dr. Chen</div>
-              <div className="avatar-role">Orthodontist</div>
+              <div className="avatar-name">{displayName}</div>
+              <div className="avatar-role">{user.email}</div>
             </div>
           </div>
         </aside>
@@ -90,7 +123,7 @@ export default function App() {
                 <span className="search-icon">{Icons.search}</span>
                 <input className="search-input" placeholder="Search Patient ID…" />
               </div>
-              <div className="avatar" style={{ width: 36, height: 36, fontSize: 13 }}>DC</div>
+              <div className="avatar" style={{ width: 36, height: 36, fontSize: 13 }}>{initials}</div>
             </div>
           </header>
 
@@ -106,17 +139,9 @@ export default function App() {
             </div>
           )}
 
-          {screen === "patients" && (
-            <PatientsPage />
-          )}
-
-          {screen === "reports" && (
-            <ReportsPage />
-          )}
-
-          {screen === "settings" && (
-            <SettingsPage />
-          )}
+          {screen === "patients" && <PatientsPage />}
+          {screen === "reports" && <ReportsPage />}
+          {screen === "settings" && <SettingsPage />}
         </div>
       </div>
     </>

@@ -4,7 +4,7 @@ import { C, STATUS_COLORS } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
 import "./PatientsPage.css";
 
-function PatientsPage() {
+function PatientsPage({ onAnalyze }) {
   // --- State Variables ---
   // The complete list of patients fetched from the API
   const [patients, setPatients] = useState([]);
@@ -123,7 +123,12 @@ function PatientsPage() {
                 const dot = isCompleted ? C.green : isPending ? C.amber : C.blue;
 
                 return (
-                  <div key={p.id} className="table-row" style={{ gridTemplateColumns: "1.5fr 2fr 1fr 1fr" }}>
+                  <div 
+                    key={p.id} 
+                    className="table-row hover-scale" 
+                    style={{ gridTemplateColumns: "1.5fr 2fr 1fr 1fr", cursor: "pointer" }} 
+                    onClick={() => { if (onAnalyze) onAnalyze(p.id); }}
+                  >
                     <div style={{ fontWeight: 600, color: C.text }}>{p.name}</div>
                     <div className="patient-id" style={{ fontSize: 11 }}>{p.id}</div>
                     <div>

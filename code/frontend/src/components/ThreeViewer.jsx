@@ -1,6 +1,6 @@
 import React, { useState, Suspense, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Sphere, Text, Html } from '@react-three/drei';
+import { OrbitControls, Sphere, Text, Html, Center } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 // Renders an actual STL mesh dynamically fetched securely from the backend
@@ -12,10 +12,10 @@ function STLMesh({ url, position, color, onAddLandmark }) {
     }
   });
 
-  // Center the geometry around its local origin to ensure it rotates correctly
+  // Compute normals for lighting, but DO NOT call geometry.center().
+  // Centering corrupts the World coordinates of the STL relative to the calculated ML landmarks!
   useMemo(() => {
     geometry.computeVertexNormals();
-    geometry.center();
   }, [geometry]);
 
   return (
@@ -24,9 +24,6 @@ function STLMesh({ url, position, color, onAddLandmark }) {
       onClick={onAddLandmark} 
       castShadow 
       receiveShadow
-      scale={[0.1, 0.1, 0.1]} // Scaled down as raw STLs are often huge mathematically
-      // Rotate the jaw out of conventional STL Z-up bounds to match the viewer
-      rotation={[0, 0, 0]} 
     >
       <primitive object={geometry} attach="geometry" />
       <meshStandardMaterial color={color} roughness={0.4} />
@@ -52,7 +49,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
   const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
 
   return (
-    <group rotation={[-Math.PI / 2, 0, 0]}> {/* Rotate to lay flat */}
+    <group>
       {showUpper && upperScanUrl ? (
         <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
           <STLMesh 
@@ -79,37 +76,11 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
          <FallbackMesh message="No Lower Arch found" />
       )}
       
-      {/* Predefined visual markers when highlightLandmarks is active */}
-      {highlightLandmarks && showUpper && (
-        <group>
-          <LandmarkLabel position={[0, 3.8, 0.5]} text="OB" />
-          <LandmarkLabel position={[-3, 0, 0.5]} text="ML" />
-          <LandmarkLabel position={[3, 0, 0.5]} text="OJ" />
-        </group>
-      )}
     </group>
   );
 }
 
-function LandmarkLabel({ position, text }) {
-  return (
-    <group position={position}>
-      <Sphere args={[0.2, 16, 16]}>
-        <meshBasicMaterial color="#0077B6" />
-      </Sphere>
-      <Text
-        position={[0, 0, 0.6]}
-        rotation={[Math.PI / 2, 0, 0]}
-        fontSize={0.4}
-        color="#0077B6"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {text}
-      </Text>
-    </group>
-  );
-}
+
 
 export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [] }) {
   const [landmarks, setLandmarks] = useState([]);
@@ -127,20 +98,31 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
             <directionalLight position={[-10, 10, -5]} intensity={0.5} />
             
-            <JawModel 
-                showUpper={showUpper} 
-                showLower={showLower} 
-                highlightLandmarks={highlightLandmarks}
-                onAddLandmark={handlePointerDown} 
-                scans={scans}
-            />
+            <Center>
+                <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
+                    <JawModel 
+                        showUpper={showUpper} 
+                        showLower={showLower} 
+                        highlightLandmarks={highlightLandmarks}
+                        onAddLandmark={handlePointerDown} 
+                        scans={scans}
+                    />
 
-            {/* Render manually added landmarks */}
-            {landmarks.map((pos, idx) => (
-                <Sphere key={idx} position={pos} args={[0.15, 16, 16]}>
-                    <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
-                </Sphere>
-            ))}
+                    {/* Render pre-calculated Backend AI landmarks aligned precisely in the same transformed coordinate space */}
+                    {highlightLandmarks && scans.flatMap(s => s.landmarks || []).map((lm, idx) => (
+                        <Sphere key={`ai-lm-${lm.id || idx}`} position={[lm.x, lm.y, lm.z]} args={[0.8, 16, 16]}>
+                            <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
+                        </Sphere>
+                    ))}
+
+                    {/* Render manually interacted frontend landmarks */}
+                    {landmarks.map((pos, idx) => (
+                        <Sphere key={idx} position={pos} args={[1.5, 16, 16]}>
+                            <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
+                        </Sphere>
+                    ))}
+                </group>
+            </Center>
 
             <OrbitControls 
                 enableDamping 

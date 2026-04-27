@@ -141,7 +141,7 @@ export default function App() {
             </div>
           )}
 
-          {screen === "patients" && <PatientsPage />}
+          {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} />}
           {screen === "reports" && <ReportsPage />}
           {screen === "settings" && <SettingsPage />}
         </div>

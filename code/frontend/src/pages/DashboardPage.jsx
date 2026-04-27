@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
-import { MOCK_PATIENTS, C, STATUS_COLORS } from "../utils/constants.js";
+import { useState, useCallback, useEffect } from "react";
+import { C, STATUS_COLORS, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
+import { getPatients } from "../utils/api.js";
 
 function Dashboard({ onAnalyze }) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -8,6 +9,15 @@ function Dashboard({ onAnalyze }) {
   const [progress, setProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getPatients()
+      .then(setPatients)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -26,8 +36,9 @@ function Dashboard({ onAnalyze }) {
     }, 150);
   };
 
-  const filtered = MOCK_PATIENTS.filter(p =>
-    p.id.toLowerCase().includes(search.toLowerCase())
+  const filtered = patients.filter(p =>
+    p.id.toLowerCase().includes(search.toLowerCase()) || 
+    p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -122,16 +133,28 @@ function Dashboard({ onAnalyze }) {
           <div>Status</div>
         </div>
         {filtered.map(p => {
-          const sc = STATUS_COLORS[p.status];
+          // Determine status colors based on real treatment_status from the database
+          const isCompleted = p.treatment_status.toLowerCase() === "completed";
+          const isPending = p.treatment_status.toLowerCase() === "pending";
+          const sc = {
+            bg: isCompleted ? C.greenLight : isPending ? C.amberLight : C.blueLight,
+            text: isCompleted ? C.green : isPending ? C.amber : C.blue,
+            dot: isCompleted ? C.green : isPending ? C.amber : C.blue
+          };
+          
           return (
             <div key={p.id} className="table-row" onClick={onAnalyze}>
               <div className="patient-id">{p.id}</div>
-              <div style={{ fontSize: 13, color: C.textSub }}>{p.date}</div>
-              <div className="score-cell">{p.score} <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 400 }}>pts</span></div>
+              <div style={{ fontSize: 13, color: C.textSub }}>
+                {new Date(p.created_at).toLocaleDateString()}
+              </div>
+              <div className="score-cell">
+                {p.par_score !== null ? p.par_score : "--"} <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 400 }}>pts</span>
+              </div>
               <div>
                 <span className="badge" style={{ background: sc.bg, color: sc.text }}>
                   <span className="badge-dot" style={{ background: sc.dot }} />
-                  {p.status}
+                  {p.treatment_status}
                 </span>
               </div>
             </div>

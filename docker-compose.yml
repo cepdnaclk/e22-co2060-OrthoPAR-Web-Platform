@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # The Persistent PostgreSQL Database layer
+  db_postgres:
+    image: postgres:15-alpine
+    container_name: orthopar_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: orthopar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - orthopar_net
+
+  # Python 3.12 FastAPI Endpoints orchestrating ML tasks
+  orthopar_backend:
+    build:
+      context: ./code/backend
+      dockerfile: Dockerfile
+    container_name: orthopar_backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db_postgres/orthopar
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=120
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./code/backend/models:/app/models  # Map ML model payload weights if they exist persistently outside
+    depends_on:
+      - db_postgres
+    networks:
+      - orthopar_net
+
+  # The React Vite Engine exposed via NGINX port 5173
+  orthopar_frontend:
+    build:
+      context: ./code/frontend
+      dockerfile: Dockerfile
+    container_name: orthopar_frontend
+    ports:
+      - "5173:80" # Map host 5173 to container internal NGINX port 80
+    depends_on:
+      - orthopar_backend
+    networks:
+      - orthopar_net
+
+volumes:
+  postgres_data:
+
+networks:
+  orthopar_net:
+    driver: bridge

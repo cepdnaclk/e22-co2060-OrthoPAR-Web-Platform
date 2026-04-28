@@ -35,6 +35,7 @@ export default function App() {
   const [screen, setScreen] = useState("dashboard");
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activePatientId, setActivePatientId] = useState(null);
+  const [reportPatientId, setReportPatientId] = useState(null);
 
   // While checking stored token, show nothing (avoid flash)
   if (loading) {
@@ -61,7 +62,6 @@ export default function App() {
     { id: "dashboard", label: "Dashboard", icon: Icons.home },
     { id: "studio", label: "Analysis Studio", icon: Icons.scan },
     { id: "patients", label: "Patients", icon: Icons.patients },
-    { id: "reports", label: "Reports", icon: Icons.reports },
   ];
 
   const handleAnalyze = (patientId) => {
@@ -70,11 +70,17 @@ export default function App() {
     setActiveNav("studio");
   };
 
+  const handleViewReport = (patientId) => {
+    setReportPatientId(patientId);
+    setScreen("reports");
+    setActiveNav("reports");
+  };
+
   const titles = {
     dashboard: { title: "Dashboard", sub: `Welcome back, ${displayName}` },
     studio: { title: "Analysis Studio", sub: "Interactive PAR Index Calculator" },
     patients: { title: "Patients", sub: "All patient records" },
-    reports: { title: "Reports", sub: "Saved analysis reports" },
+    reports: { title: "Patient Report", sub: reportPatientId ? "Trend analysis & visit history" : "Select a patient to view their report" },
     settings: { title: "Settings", sub: "Account & preferences" },
   };
 
@@ -163,8 +169,13 @@ export default function App() {
             </div>
           )}
 
-          {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} />}
-          {screen === "reports" && <ReportsPage />}
+          {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} onViewReport={handleViewReport} />}
+          {screen === "reports" && (
+            <ReportsPage
+              patientId={reportPatientId}
+              onBack={() => { setScreen("patients"); setActiveNav("patients"); }}
+            />
+          )}
           {screen === "settings" && <SettingsPage />}
         </div>
       </div>

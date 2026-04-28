@@ -1,68 +1,88 @@
-import React, { useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sphere, Text } from '@react-three/drei';
+import React, { useState, Suspense, useMemo } from 'react';
+import { Canvas, useLoader } from '@react-three/fiber';
+import { OrbitControls, Sphere, Text, Html, Center } from '@react-three/drei';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
-function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark }) {
-  // A placeholder representing an upper and lower jaw (arch shape using partial Torus)
+// Renders an actual STL mesh dynamically fetched securely from the backend
+function STLMesh({ url, position, color, onAddLandmark }) {
+  const geometry = useLoader(STLLoader, url, (loader) => {
+    const token = localStorage.getItem("orthopar_token");
+    if (token) {
+      loader.setRequestHeader({ 'Authorization': `Bearer ${token}` });
+    }
+  });
+
+  // Compute normals for lighting, but DO NOT call geometry.center().
+  // Centering corrupts the World coordinates of the STL relative to the calculated ML landmarks!
+  useMemo(() => {
+    geometry.computeVertexNormals();
+  }, [geometry]);
+
   return (
-    <group rotation={[-Math.PI / 2, 0, 0]}> {/* Rotate to lay flat */}
-      {showUpper && (
-        <mesh 
-            position={[0, 0, 0.5]} 
-            onClick={onAddLandmark}
-            castShadow 
-            receiveShadow
-        >
-          <torusGeometry args={[3, 0.8, 16, 100, Math.PI]} />
-          <meshStandardMaterial color="#E8F4FD" roughness={0.4} />
-        </mesh>
+    <mesh 
+      position={position} 
+      onClick={onAddLandmark} 
+      castShadow 
+      receiveShadow
+    >
+      <primitive object={geometry} attach="geometry" />
+      <meshStandardMaterial color={color} roughness={0.4} />
+    </mesh>
+  );
+}
+
+// Fallback mesh shown while the massive STL binaries are downloading
+function FallbackMesh({ message }) {
+  return (
+    <group>
+      <Html center>
+        <div style={{ color: "#3B82F6", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: "white", padding: "4px 8px", borderRadius: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+          {message}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans }) {
+  const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
+  const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
+
+  return (
+    <group>
+      {showUpper && upperScanUrl ? (
+        <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
+          <STLMesh 
+            url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
+            position={[0, 0, 0]} 
+            color="#E8F4FD"
+            onAddLandmark={onAddLandmark}
+          />
+        </Suspense>
+      ) : showUpper && (
+         <FallbackMesh message="No Upper Arch found" />
       )}
-      {showLower && (
-        <mesh 
-            position={[0, 0, -0.5]} 
-            rotation={[0, 0, Math.PI]} 
-            onClick={onAddLandmark}
-            castShadow 
-            receiveShadow
-        >
-          <torusGeometry args={[2.8, 0.8, 16, 100, Math.PI]} />
-          <meshStandardMaterial color="#F0F9FF" roughness={0.4} />
-        </mesh>
+
+      {showLower && lowerScanUrl ? (
+        <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
+          <STLMesh 
+            url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
+            position={[0, 0, 0]} 
+            color="#F0F9FF"
+            onAddLandmark={onAddLandmark}
+          />
+        </Suspense>
+      ) : showLower && (
+         <FallbackMesh message="No Lower Arch found" />
       )}
       
-      {/* Predefined visual markers when highlightLandmarks is active */}
-      {highlightLandmarks && showUpper && (
-        <group>
-          <LandmarkLabel position={[0, 3.8, 0.5]} text="OB" />
-          <LandmarkLabel position={[-3, 0, 0.5]} text="ML" />
-          <LandmarkLabel position={[3, 0, 0.5]} text="OJ" />
-        </group>
-      )}
     </group>
   );
 }
 
-function LandmarkLabel({ position, text }) {
-  return (
-    <group position={position}>
-      <Sphere args={[0.2, 16, 16]}>
-        <meshBasicMaterial color="#0077B6" />
-      </Sphere>
-      <Text
-        position={[0, 0, 0.6]}
-        rotation={[Math.PI / 2, 0, 0]}
-        fontSize={0.4}
-        color="#0077B6"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {text}
-      </Text>
-    </group>
-  );
-}
 
-export default function ThreeViewer({ showUpper, showLower, highlightLandmarks }) {
+
+export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [] }) {
   const [landmarks, setLandmarks] = useState([]);
 
   const handlePointerDown = (e) => {
@@ -78,19 +98,57 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks }
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
             <directionalLight position={[-10, 10, -5]} intensity={0.5} />
             
-            <JawModel 
-                showUpper={showUpper} 
-                showLower={showLower} 
-                highlightLandmarks={highlightLandmarks}
-                onAddLandmark={handlePointerDown} 
-            />
+            <Center>
+                <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
+                    <JawModel 
+                        showUpper={showUpper} 
+                        showLower={showLower} 
+                        highlightLandmarks={highlightLandmarks}
+                        onAddLandmark={handlePointerDown} 
+                        scans={scans}
+                    />
 
-            {/* Render manually added landmarks */}
-            {landmarks.map((pos, idx) => (
-                <Sphere key={idx} position={pos} args={[0.15, 16, 16]}>
-                    <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
-                </Sphere>
-            ))}
+                    {/* Render pre-calculated Backend AI landmarks aligned precisely in the same transformed coordinate space */}
+                    {highlightLandmarks && scans.flatMap(s => {
+                        // Dynamically hide landmarks if their parent anatomical mesh is toggled off by the user
+                        if (s.file_type === "Upper Arch Segment" && !showUpper) return [];
+                        if (s.file_type === "Lower Arch Segment" && !showLower) return [];
+                        return s.landmarks || [];
+                    }).map((lm, idx) => {
+                        // ML models often output predictions in Centimeters (cm) or normalized scales to improve gradient stability.
+                        // The raw STL meshes are natively structured in Millimeters (mm). 
+                        // We must multiply the predicted coordinate vectors by 10 to scale them accurately onto the physical geometry!
+                        const ML_SCALE = 10.0;
+                        const pos = [lm.x * ML_SCALE, lm.y * ML_SCALE, lm.z * ML_SCALE];
+
+                        return (
+                            <group key={`ai-lm-${lm.id || idx}`} position={pos}>
+                                <Sphere args={[0.6, 16, 16]}>
+                                    <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
+                                </Sphere>
+                                {/* Display the physical anatomy name (e.g., L1M, R2D) floating above the sphere */}
+                                <Text 
+                                    position={[0, 1.2, 0]} 
+                                    rotation={[Math.PI / 2, 0, 0]} 
+                                    fontSize={1.4} 
+                                    color="#FCD34D" 
+                                    outlineWidth={0.08} 
+                                    outlineColor="#1E293B"
+                                >
+                                    {lm.point_name}
+                                </Text>
+                            </group>
+                        );
+                    })}
+
+                    {/* Render manually interacted frontend landmarks */}
+                    {landmarks.map((pos, idx) => (
+                        <Sphere key={idx} position={pos} args={[1.5, 16, 16]}>
+                            <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
+                        </Sphere>
+                    ))}
+                </group>
+            </Center>
 
             <OrbitControls 
                 enableDamping 

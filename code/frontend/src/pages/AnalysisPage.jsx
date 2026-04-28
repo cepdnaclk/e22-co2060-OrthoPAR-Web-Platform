@@ -1,17 +1,101 @@
-import { useState } from "react";
-import { PAR_WEIGHTS, MOCK_AI_VALUES, C, STATUS_COLORS, calcPARPoints, getScoreStatus } from "../utils/constants.js";
+import { useState, useEffect } from "react";
+import { PAR_WEIGHTS, C, STATUS_COLORS, calcPARPoints, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
 import ThreeViewer from "../components/ThreeViewer.jsx";
+import { getPatient, extractLandmarks, calculateScore } from "../utils/api.js";
 
-function AnalysisStudio() {
+function AnalysisStudio({ patientId }) {
   const [showUpper, setShowUpper] = useState(true);
   const [showLower, setShowLower] = useState(true);
   const [highlightLandmarks, setHighlightLandmarks] = useState(false);
   const [overrides, setOverrides] = useState({});
   const [savedMsg, setSavedMsg] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState("");
+  const [aiValues, setAiValues] = useState(null);
+  const [patient, setPatient] = useState(null);
+
+  useEffect(() => {
+    if (!patientId) return;
+
+    let isMounted = true;
+    const processPatient = async () => {
+      setLoading(true);
+      try {
+        setLoadingStep("Fetching patient context...");
+        const p = await getPatient(patientId);
+        if (!isMounted) return;
+        setPatient(p);
+
+        if (p.par_scores && p.par_scores.length > 0) {
+          setAiValues(p.par_scores[p.par_scores.length - 1]);
+          setLoading(false);
+          return;
+        }
+
+        const scans = p.scans || [];
+        if (scans.length === 0) {
+          setLoadingStep("No 3D scans found for this patient.");
+          return;
+        }
+
+        setLoadingStep("Running TensorFlow ML Models (Extracting Landmarks)...");
+        await Promise.all(scans.map(s => extractLandmarks(s.id)));
+
+        setLoadingStep("Computing PAR Mathematical Indices...");
+        const score = await calculateScore(patientId);
+        
+        if (!isMounted) return;
+        setAiValues(score);
+        setLoading(false);
+
+      } catch (err) {
+        if (!isMounted) return;
+        console.error(err);
+        setLoadingStep("Error: " + err.message);
+      }
+    };
+    
+    processPatient();
+    return () => { isMounted = false; };
+  }, [patientId]);
+
+  if (!patientId) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: C.textMuted }}>
+        Select a patient from the Dashboard or Patients page to begin analysis.
+      </div>
+    );
+  }
+
+  if (loading || !aiValues) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: C.textMuted }}>
+        <div className="processing" style={{ width: 40, height: 40, borderRadius: "50%", background: C.blueLight, border: `2px solid ${C.blue}`, marginBottom: 20 }} />
+        <div style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>{loadingStep}</div>
+        <div style={{ fontSize: 13, marginTop: 4 }}>This may take a moment.</div>
+      </div>
+    );
+  }
+
+  // Map frontend component keys to backend ParScoreResponse schema keys
+  const dbKeyMap = {
+    upper_anterior: "upper_anterior_score",
+    lower_anterior: "lower_anterior_score",
+    buccal_ap: "buccal_occlusion_antero_posterior_score",
+    buccal_transverse: "buccal_occlusion_transverse_score",
+    buccal_vertical: "buccal_occlusion_vertical_score",
+    overjet: "overjet_score",
+    overbite: "overbite_score",
+    centreline: "centreline_score"
+  };
+
   const effectiveValues = Object.fromEntries(
-    Object.keys(MOCK_AI_VALUES).map(k => [k, overrides[k] !== undefined ? overrides[k] : MOCK_AI_VALUES[k]])
+    Object.keys(PAR_WEIGHTS).map(k => {
+      const aiVal = aiValues[dbKeyMap[k]] || 0;
+      return [k, overrides[k] !== undefined ? overrides[k] : aiVal];
+    })
   );
 
   const pointsMap = Object.fromEntries(
@@ -41,7 +125,7 @@ function AnalysisStudio() {
       {/* 3D Viewer Panel */}
       <div className="viewer-panel">
         <div className="viewer-topbar">
-          <div className="viewer-title">3D Scan Viewer</div>
+          <div className="viewer-title">{patient ? patient.name : 'Unknown'} - 3D Scan Viewer</div>
           <div className="viewer-controls">
             <button
               className={`viewer-btn${showUpper ? " active" : ""}`}
@@ -64,9 +148,14 @@ function AnalysisStudio() {
           </div>
         </div>
         <div className="viewer-canvas">
-          <ThreeViewer showUpper={showUpper} showLower={showLower} highlightLandmarks={highlightLandmarks} />
+          <ThreeViewer 
+            showUpper={showUpper} 
+            showLower={showLower} 
+            highlightLandmarks={highlightLandmarks} 
+            scans={patient?.scans || []} 
+          />
           <div className="viewer-badge">
-            Scan: <span>PT-2041.stl</span> &nbsp;·&nbsp; Vertices: <span>48,203</span>
+            Status: <span>{aiValues.model_version === "manual" ? "Manual Inference" : "AI Predicted"}</span>
           </div>
           <div className="rotate-hint">Drag to rotate · Scroll to zoom</div>
         </div>
@@ -110,9 +199,9 @@ function AnalysisStudio() {
             </thead>
             <tbody>
               {Object.entries(PAR_WEIGHTS).map(([key, meta]) => {
-                const aiVal = MOCK_AI_VALUES[key];
+                const aiVal = aiValues[dbKeyMap[key]] || 0;
                 const manualVal = overrides[key] !== undefined ? overrides[key] : "";
-                const isOverridden = manualVal !== "" && manualVal !== aiVal;
+                const isOverridden = manualVal !== "" && Number(manualVal) !== aiVal;
                 const pts = pointsMap[key];
                 return (
                   <tr key={key} className={`metric-row${isOverridden ? " modified" : ""}`}>
@@ -166,7 +255,7 @@ function AnalysisStudio() {
             </button>
             <button className="btn-secondary" onClick={() => setOverrides({})}>
               {Icons.refresh}
-              Re-calculate
+              Reset Inputs
             </button>
             <button className="btn-primary">
               Export Report

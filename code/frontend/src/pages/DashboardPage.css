@@ -1,0 +1,97 @@
+/* DashboardPage.css */
+
+.dashboard-section-wrap {
+  margin-bottom: 20px;
+}
+
+.dashboard-section-wrap:first-of-type {
+  margin-bottom: 16px;
+}
+
+.dashboard-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B; /* C.textSub */
+  margin-bottom: 8px;
+}
+
+.dashboard-select {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0; /* C.border */
+}
+
+.scan-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scan-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.scan-picker-btn {
+  flex: none;
+  margin: 0 8px;
+  padding: 6px 12px;
+  /* Ensure the button doesn't stretch and remains compact */
+  width: max-content;
+  min-width: 120px;
+  max-width: 140px;
+  white-space: nowrap;
+}
+
+.scan-picker-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.scan-picker-status {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 400;
+  color: #94A3B8; /* C.textMuted */
+}
+
+.scan-picker-status.selected {
+  color: #3B82F6; /* C.blue */
+  font-weight: 600;
+}
+
+.scan-status-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-error-msg {
+  font-size: 13px;
+  color: #EF4444; /* C.red */
+  margin-bottom: 12px;
+}
+
+.dashboard-progress-msg {
+  font-size: 13px;
+  color: #3B82F6; /* C.blue */
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Make sure the main analyze button spans fully and is centered */
+.dashboard-analyze-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

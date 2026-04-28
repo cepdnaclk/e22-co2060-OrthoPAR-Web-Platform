@@ -1,0 +1,37 @@
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal {
+    background: #FFFFFF; border-radius: 12px; width: 100%; max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 24px;
+    animation: fadeIn 0.15s ease-out;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; color: #1A2332; margin-bottom: 8px; }
+  .modal-body { margin-bottom: 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: #64748B; margin-bottom: 6px; }
+  .form-input, .form-select {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #E2E8F0; font-size: 14px; font-family: 'DM Sans', sans-serif;
+    outline: none; transition: all 0.15s; background: #F8FAFC;
+    box-sizing: border-box;
+  }
+  .form-input:focus, .form-select:focus { border-color: #0077B6; background: #FFF; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .modal-btn-cancel { background: transparent; border: 1px solid #E2E8F0; color: #64748B; }
+  .modal-btn-cancel:hover { background: #F4F7FB; color: #1A2332; }
+  .modal-btn-save { background: #0077B6; border: none; color: white; }
+  .modal-btn-save:hover { background: #005A8E; }
+  .modal-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* New rule to ensure the button doesn't stretch infinitely */
+  .add-patient-btn {
+    flex: none; /* Don't grow */
+    width: auto;
+  }

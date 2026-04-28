@@ -143,3 +143,7 @@ export async function calculateScore(visitId) {
 export async function getReports() {
   return request("/api/analysis/reports");
 }
+
+export async function getPatientReport(patientId) {
+  return request(`/api/analysis/patients/${patientId}/report`);
+}

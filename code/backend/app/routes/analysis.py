@@ -287,6 +287,137 @@ def calculate_score_for_visit(
     response.missing_segments = missing_segments
     return response
 
+# ---------------- PATIENT TREND REPORT ----------------
+
+@router.get("/patients/{patient_id}/report")
+def get_patient_report(
+    patient_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Returns a full patient report including:
+    - Patient demographics
+    - Clinician info
+    - All visits with PAR scores (chronological)
+    - Trend analytics: delta, direction, % improvement, rolling average
+    """
+    patient = db.query(models.Patient).filter(
+        models.Patient.id == patient_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
+
+    # Build chronological visit list with scores
+    visits_data = []
+    for visit in sorted(patient.visits, key=lambda v: v.visit_date):
+        latest_score = None
+        score_details = None
+        if visit.par_scores:
+            ps = sorted(visit.par_scores, key=lambda s: s.calculated_at)[-1]
+            latest_score = ps.final_score
+            score_details = {
+                "id": str(ps.id),
+                "upper_anterior_score": ps.upper_anterior_score,
+                "lower_anterior_score": ps.lower_anterior_score,
+                "buccal_occlusion_antero_posterior_score": ps.buccal_occlusion_antero_posterior_score,
+                "buccal_occlusion_transverse_score": ps.buccal_occlusion_transverse_score,
+                "buccal_occlusion_vertical_score": ps.buccal_occlusion_vertical_score,
+                "overjet_score": ps.overjet_score,
+                "overbite_score": ps.overbite_score,
+                "centreline_score": ps.centreline_score,
+                "final_score": ps.final_score,
+                "calculated_at": ps.calculated_at.isoformat(),
+                "model_version": ps.model_version,
+            }
+        visits_data.append({
+            "id": str(visit.id),
+            "visit_date": visit.visit_date.isoformat(),
+            "status": visit.status,
+            "notes": visit.notes,
+            "scan_count": len(visit.scans),
+            "par_score": latest_score,
+            "score_details": score_details,
+        })
+
+    # Compute trend analytics only on visits that have a PAR score
+    scored = [v for v in visits_data if v["par_score"] is not None]
+    trend_entries = []
+    window = 3  # rolling average window size
+
+    for i, v in enumerate(scored):
+        score = v["par_score"]
+        delta = None
+        direction = None
+        pct_improvement = None
+
+        if i > 0:
+            prev_score = scored[i - 1]["par_score"]
+            delta = score - prev_score  # negative = improving (lower PAR = better)
+            if delta < 0:
+                direction = "improving"
+            elif delta > 0:
+                direction = "worsening"
+            else:
+                direction = "stable"
+
+            if prev_score != 0:
+                # Positive pct = score went DOWN = improvement
+                pct_improvement = round(((prev_score - score) / prev_score) * 100, 1)
+
+        # Rolling average (up to last `window` entries)
+        window_scores = [scored[j]["par_score"] for j in range(max(0, i - window + 1), i + 1)]
+        rolling_avg = round(sum(window_scores) / len(window_scores), 1)
+
+        trend_entries.append({
+            "visit_id": v["id"],
+            "visit_date": v["visit_date"],
+            "visit_status": v["status"],
+            "par_score": score,
+            "delta": round(delta, 1) if delta is not None else None,
+            "direction": direction,
+            "pct_improvement": pct_improvement,
+            "rolling_avg": rolling_avg,
+        })
+
+    # Overall improvement
+    overall_delta = None
+    overall_pct = None
+    if len(scored) >= 2:
+        first = scored[0]["par_score"]
+        last = scored[-1]["par_score"]
+        overall_delta = round(last - first, 1)
+        if first != 0:
+            overall_pct = round(((first - last) / first) * 100, 1)
+
+    return {
+        "patient": {
+            "id": str(patient.id),
+            "name": patient.name,
+            "hospital_patient_id": patient.hospital_patient_id,
+            "date_of_birth": patient.date_of_birth,
+            "gender": patient.gender,
+            "treatment_status": patient.treatment_status,
+            "created_at": patient.created_at.isoformat(),
+        },
+        "clinician": {
+            "full_name": current_user.full_name,
+            "email": current_user.email,
+            "hospital_name": current_user.hospital_name,
+            "specialty": current_user.specialty,
+            "slmc_registration_number": current_user.slmc_registration_number,
+        },
+        "visits": visits_data,
+        "trend": {
+            "entries": trend_entries,
+            "overall_delta": overall_delta,
+            "overall_pct_improvement": overall_pct,
+            "total_visits": len(visits_data),
+            "scored_visits": len(scored),
+        }
+    }
+
 # ---------------- REPORTS ----------------
 
 @router.get("/reports", response_model=List[schemas.ReportResponse])

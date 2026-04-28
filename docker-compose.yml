@@ -31,6 +31,7 @@ services:
       - "8000:8000"
     volumes:
       - ./code/backend/models:/app/models  # Map ML model payload weights if they exist persistently outside
+      - uploads_data:/app/uploads           # Persist uploaded STL files across container rebuilds
     depends_on:
       - db_postgres
     networks:
@@ -51,6 +52,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   orthopar_net:

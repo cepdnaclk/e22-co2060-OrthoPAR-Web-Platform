@@ -50,6 +50,18 @@ function FallbackMesh({ message }) {
   );
 }
 
+// Per-mesh error boundary: stops a bad STL URL from crashing the whole viewer
+class MeshErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return <FallbackMesh message={`STL file unavailable — please re-upload`} />;
+    }
+    return this.props.children;
+  }
+}
+
 function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans, onBoundsLoad }) {
   const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
   const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
@@ -57,29 +69,33 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
   return (
     <group>
       {showUpper && upperScanUrl ? (
-        <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
-          <STLMesh 
-            url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
-            position={[0, 0, 0]} 
-            color="#E8F4FD"
-            onAddLandmark={onAddLandmark}
-            onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
-          />
-        </Suspense>
+        <MeshErrorBoundary>
+          <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
+            <STLMesh 
+              url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
+              position={[0, 0, 0]} 
+              color="#E8F4FD"
+              onAddLandmark={onAddLandmark}
+              onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
+            />
+          </Suspense>
+        </MeshErrorBoundary>
       ) : showUpper && (
          <FallbackMesh message="No Upper Arch found" />
       )}
 
       {showLower && lowerScanUrl ? (
-        <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
-          <STLMesh 
-            url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
-            position={[0, 0, 0]} 
-            color="#F0F9FF"
-            onAddLandmark={onAddLandmark}
-            onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
-          />
-        </Suspense>
+        <MeshErrorBoundary>
+          <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
+            <STLMesh 
+              url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
+              position={[0, 0, 0]} 
+              color="#F0F9FF"
+              onAddLandmark={onAddLandmark}
+              onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
+            />
+          </Suspense>
+        </MeshErrorBoundary>
       ) : showLower && (
          <FallbackMesh message="No Lower Arch found" />
       )}
@@ -87,6 +103,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
     </group>
   );
 }
+
 
 
 

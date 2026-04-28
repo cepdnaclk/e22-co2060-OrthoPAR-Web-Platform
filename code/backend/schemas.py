@@ -132,3 +132,10 @@ class MLModelResponse(MLModelBase):
     file_path: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class ReportResponse(ParScoreResponse):
+    patient_name: str
+    patient_id: UUID
+    hospital_patient_id: Optional[str] = None
+    visit_notes: Optional[str] = None
+    visit_date: datetime

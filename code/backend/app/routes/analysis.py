@@ -286,3 +286,38 @@ def calculate_score_for_visit(
     response.is_partial = len(missing_segments) > 0
     response.missing_segments = missing_segments
     return response
+
+# ---------------- REPORTS ----------------
+
+@router.get("/reports", response_model=List[schemas.ReportResponse])
+def get_reports(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    results = db.query(
+        models.ParScore, 
+        models.Patient.name.label("patient_name"),
+        models.Patient.id.label("patient_id"),
+        models.Patient.hospital_patient_id.label("hospital_patient_id"),
+        models.Visit.notes.label("visit_notes"),
+        models.Visit.visit_date.label("visit_date")
+    ).join(
+        models.Visit, models.ParScore.visit_id == models.Visit.id
+    ).join(
+        models.Patient, models.Visit.patient_id == models.Patient.id
+    ).filter(
+        models.Patient.clinician_id == current_user.id
+    ).order_by(models.ParScore.calculated_at.desc()).all()
+    
+    reports = []
+    for row in results:
+        par_score = row[0]
+        report = schemas.ReportResponse.model_validate(par_score)
+        report.patient_name = row.patient_name
+        report.patient_id = row.patient_id
+        report.hospital_patient_id = row.hospital_patient_id
+        report.visit_notes = row.visit_notes
+        report.visit_date = row.visit_date
+        reports.append(report)
+        
+    return reports

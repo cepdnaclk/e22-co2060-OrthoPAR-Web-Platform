@@ -139,3 +139,7 @@ export async function extractLandmarks(scanId) {
 export async function calculateScore(visitId) {
   return request(`/api/analysis/landmarks/calculate/${visitId}`, { method: "POST" });
 }
+
+export async function getReports() {
+  return request("/api/analysis/reports");
+}

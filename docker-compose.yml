@@ -29,8 +29,9 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=120
     ports:
       - "8000:8000"
+    restart: always
     volumes:
-      - ./code/backend/models:/app/models  # Map ML model payload weights if they exist persistently outside
+      - ./code/backend/ml_models:/app/ml_models  # Map ML model payload weights if they exist persistently outside
     depends_on:
       - db_postgres
     networks:

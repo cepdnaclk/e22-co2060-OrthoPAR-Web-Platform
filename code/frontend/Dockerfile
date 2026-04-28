@@ -28,10 +28,14 @@ RUN echo 'server { \
     try_files $uri $uri/ /index.html; \
     } \
     location /api/ { \
-    proxy_pass http://orthopar_backend:8000/; \
+    proxy_pass http://orthopar_backend:8000; \
     proxy_set_header Host $host; \
     proxy_set_header X-Real-IP $remote_addr; \
     } \
+    location /login { proxy_pass http://orthopar_backend:8000; } \
+    location /register { proxy_pass http://orthopar_backend:8000; } \
+    location /models/upload { proxy_pass http://orthopar_backend:8000; } \
+    location /users/me { proxy_pass http://orthopar_backend:8000; } \
     }' > /etc/nginx/conf.d/default.conf
 
 # Expose Web Port

@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
 import boto3
-from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import NoCredentialsError, ClientError
 import os
 import io
+import tempfile
 
 import schemas, models, auth
 from database import get_db
@@ -119,7 +120,31 @@ def get_scan_file(
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found or unauthorized")
     
-    file_path = scan.object_key
+    object_key = scan.object_key
+
+    # --- S3 path: stream the file directly from the bucket ---
+    if object_key.startswith("scans/"):
+        try:
+            s3_response = s3_client.get_object(
+                Bucket=settings.S3_BUCKET_NAME,
+                Key=object_key
+            )
+            filename = os.path.basename(object_key)
+            return StreamingResponse(
+                s3_response["Body"],
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            )
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            if error_code == "NoSuchKey":
+                raise HTTPException(status_code=404, detail="STL file not found in S3")
+            raise HTTPException(status_code=500, detail=f"S3 error: {error_code}")
+        except NoCredentialsError:
+            raise HTTPException(status_code=500, detail="AWS credentials not configured")
+
+    # --- Local path fallback ---
+    file_path = object_key
     if not os.path.isabs(file_path):
         file_path = os.path.join(os.getcwd(), file_path)
 
@@ -130,7 +155,7 @@ def get_scan_file(
             filename=os.path.basename(file_path)
         )
     
-    raise HTTPException(status_code=404, detail=f"STL file not found on disk")
+    raise HTTPException(status_code=404, detail="STL file not found on disk or in S3")
 
 # ---------------- LANDMARKS & ANALYSIS ----------------
 

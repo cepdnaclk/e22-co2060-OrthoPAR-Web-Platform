@@ -4,7 +4,7 @@ import { OrbitControls, Sphere, Text, Html, Center } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 // Renders an actual STL mesh dynamically fetched securely from the backend
-function STLMesh({ url, position, color, onAddLandmark }) {
+function STLMesh({ url, position, color, onAddLandmark, onLoadGeometry }) {
   const geometry = useLoader(STLLoader, url, (loader) => {
     const token = localStorage.getItem("orthopar_token");
     if (token) {
@@ -14,9 +14,15 @@ function STLMesh({ url, position, color, onAddLandmark }) {
 
   // Compute normals for lighting, but DO NOT call geometry.center().
   // Centering corrupts the World coordinates of the STL relative to the calculated ML landmarks!
-  useMemo(() => {
-    geometry.computeVertexNormals();
-  }, [geometry]);
+  React.useEffect(() => {
+    if (geometry) {
+      geometry.computeVertexNormals();
+      geometry.computeBoundingBox();
+      if (onLoadGeometry) {
+        onLoadGeometry(geometry.boundingBox);
+      }
+    }
+  }, [geometry, onLoadGeometry]);
 
   return (
     <mesh 
@@ -44,7 +50,7 @@ function FallbackMesh({ message }) {
   );
 }
 
-function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans }) {
+function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans, onBoundsLoad }) {
   const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
   const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
 
@@ -57,6 +63,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
             position={[0, 0, 0]} 
             color="#E8F4FD"
             onAddLandmark={onAddLandmark}
+            onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
           />
         </Suspense>
       ) : showUpper && (
@@ -70,6 +77,7 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
             position={[0, 0, 0]} 
             color="#F0F9FF"
             onAddLandmark={onAddLandmark}
+            onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
           />
         </Suspense>
       ) : showLower && (
@@ -84,12 +92,17 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
 
 export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [] }) {
   const [landmarks, setLandmarks] = useState([]);
+  const [stlBounds, setStlBounds] = useState({});
 
   const handlePointerDown = (e) => {
     e.stopPropagation();
     const { point } = e;
     setLandmarks(prev => [...prev, point]);
   };
+
+  const handleBoundsLoad = React.useCallback((fileType, box) => {
+    setStlBounds(prev => ({ ...prev, [fileType]: box }));
+  }, []);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -106,37 +119,52 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
                         highlightLandmarks={highlightLandmarks}
                         onAddLandmark={handlePointerDown} 
                         scans={scans}
+                        onBoundsLoad={handleBoundsLoad}
                     />
 
-                    {/* Render pre-calculated Backend AI landmarks aligned precisely in the same transformed coordinate space */}
-                    {highlightLandmarks && scans.flatMap(s => {
-                        // Dynamically hide landmarks if their parent anatomical mesh is toggled off by the user
-                        if (s.file_type === "Upper Arch Segment" && !showUpper) return [];
-                        if (s.file_type === "Lower Arch Segment" && !showLower) return [];
-                        return s.landmarks || [];
-                    }).map((lm, idx) => {
-                        // ML models often output predictions in Centimeters (cm) or normalized scales to improve gradient stability.
-                        // The raw STL meshes are natively structured in Millimeters (mm). 
-                        // We must multiply the predicted coordinate vectors by 10 to scale them accurately onto the physical geometry!
-                        const ML_SCALE = 10.0;
-                        const pos = [lm.x * ML_SCALE, lm.y * ML_SCALE, lm.z * ML_SCALE];
+                    {/* Render pre-calculated Backend AI landmarks mapped dynamically to geometric bounds */}
+                    {highlightLandmarks && scans.map(s => {
+                        if (s.file_type === "Upper Arch Segment" && !showUpper) return null;
+                        if (s.file_type === "Lower Arch Segment" && !showLower) return null;
+                        if (!s.landmarks || s.landmarks.length === 0) return null;
+
+                        // Retrieve the physical Mesh Bounding Box dimensions emitted by the STLLoader
+                        const geoBox = stlBounds[s.file_type];
+                        let dynamicScale = 1.0;
+
+                        if (geoBox) {
+                            const meshWidth = geoBox.max.x - geoBox.min.x;
+                            const xVals = s.landmarks.map(v => v.x);
+                            const lmWidth = Math.max(...xVals) - Math.min(...xVals);
+                            
+                            // Auto-Calculate the physical size translation multiplier precisely on the fly
+                            if (lmWidth > 0.001) {
+                                dynamicScale = meshWidth / lmWidth;
+                            }
+                        }
 
                         return (
-                            <group key={`ai-lm-${lm.id || idx}`} position={pos}>
-                                <Sphere args={[0.6, 16, 16]}>
-                                    <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
-                                </Sphere>
-                                {/* Display the physical anatomy name (e.g., L1M, R2D) floating above the sphere */}
-                                <Text 
-                                    position={[0, 1.2, 0]} 
-                                    rotation={[Math.PI / 2, 0, 0]} 
-                                    fontSize={1.4} 
-                                    color="#FCD34D" 
-                                    outlineWidth={0.08} 
-                                    outlineColor="#1E293B"
-                                >
-                                    {lm.point_name}
-                                </Text>
+                            <group key={`ai-lm-group-${s.id}`}>
+                                {s.landmarks.map((lm, idx) => {
+                                    const pos = [lm.x * dynamicScale, lm.y * dynamicScale, lm.z * dynamicScale];
+                                    return (
+                                        <group key={`ai-lm-${lm.id || idx}`} position={pos}>
+                                            <Sphere args={[0.6, 16, 16]}>
+                                                <meshStandardMaterial color="#F59E0B" roughness={0.2} emissive="#F59E0B" emissiveIntensity={0.6} />
+                                            </Sphere>
+                                            <Text 
+                                                position={[0, 1.2, 0]} 
+                                                rotation={[Math.PI / 2, 0, 0]} 
+                                                fontSize={1.4} 
+                                                color="#FCD34D" 
+                                                outlineWidth={0.08} 
+                                                outlineColor="#1E293B"
+                                            >
+                                                {lm.point_name}
+                                            </Text>
+                                        </group>
+                                    );
+                                })}
                             </group>
                         );
                     })}

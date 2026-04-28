@@ -47,11 +47,19 @@ export async function login(email, password) {
   return data;
 }
 
-export async function register(email, fullName, password) {
+export async function register(email, fullName, password, hospitalName, slmcRegistrationNumber, specialty, phoneNumber) {
   return request("/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, full_name: fullName, password }),
+    body: JSON.stringify({ 
+      email, 
+      full_name: fullName, 
+      password,
+      hospital_name: hospitalName || null,
+      slmc_registration_number: slmcRegistrationNumber || null,
+      specialty: specialty || null,
+      phone_number: phoneNumber || null
+    }),
   });
 }
 
@@ -69,11 +77,17 @@ export async function getPatients() {
   return request("/api/analysis/patients");
 }
 
-export async function createPatient(name, treatmentStatus) {
+export async function createPatient(name, treatmentStatus, hospitalPatientId, dateOfBirth, gender) {
   return request("/api/analysis/patients", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, treatment_status: treatmentStatus }),
+    body: JSON.stringify({ 
+      name, 
+      treatment_status: treatmentStatus,
+      hospital_patient_id: hospitalPatientId || null,
+      date_of_birth: dateOfBirth || null,
+      gender: gender || null
+    }),
   });
 }
 
@@ -81,15 +95,26 @@ export async function getPatient(patientId) {
   return request(`/api/analysis/patients/${patientId}`);
 }
 
+// ── Visits ────────────────────────────────────────────────────────────────────
+
+export async function createVisit(patientId, notes = "", status = "Pre-Treatment") {
+  return request("/api/analysis/visits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient_id: patientId, notes, status }),
+  });
+}
+
 // ── Scans ─────────────────────────────────────────────────────────────────────
 
-export async function uploadScan(patientId, fileType, file) {
+export async function uploadScan(visitId, fileType, file) {
   const token = getToken();
   const formData = new FormData();
   formData.append("file", file);
 
   const res = await fetch(
-    `${BASE_URL}/api/analysis/scans?patient_id=${patientId}&file_type=${encodeURIComponent(fileType)}`,
+    `${BASE_URL}/api/analysis/scans?visit_id=${visitId}&file_type=${encodeURIComponent(fileType)}`,
+
     {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -111,6 +136,6 @@ export async function extractLandmarks(scanId) {
   return request(`/api/analysis/landmarks/extract/${scanId}`, { method: "POST" });
 }
 
-export async function calculateScore(patientId) {
-  return request(`/api/analysis/landmarks/calculate/${patientId}`, { method: "POST" });
+export async function calculateScore(visitId) {
+  return request(`/api/analysis/landmarks/calculate/${visitId}`, { method: "POST" });
 }

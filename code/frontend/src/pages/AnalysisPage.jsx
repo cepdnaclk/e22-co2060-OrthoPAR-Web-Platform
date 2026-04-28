@@ -13,8 +13,12 @@ function AnalysisStudio({ patientId }) {
 
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
+  const [error, setError] = useState("");
   const [aiValues, setAiValues] = useState(null);
   const [patient, setPatient] = useState(null);
+
+  // Visit selector state
+  const [selectedVisitIdx, setSelectedVisitIdx] = useState(null);
 
   useEffect(() => {
     if (!patientId) return;
@@ -22,21 +26,41 @@ function AnalysisStudio({ patientId }) {
     let isMounted = true;
     const processPatient = async () => {
       setLoading(true);
+      setError("");
+      setAiValues(null);
+      setPatient(null);
+      setSelectedVisitIdx(null);
+
       try {
         setLoadingStep("Fetching patient context...");
         const p = await getPatient(patientId);
         if (!isMounted) return;
         setPatient(p);
 
-        if (p.par_scores && p.par_scores.length > 0) {
-          setAiValues(p.par_scores[p.par_scores.length - 1]);
+        // Determine the active visit (default to the latest)
+        const visits = p.visits || [];
+        if (visits.length === 0) {
+          setLoadingStep("No visits found for this patient. Please upload scans first.");
           setLoading(false);
           return;
         }
 
-        const scans = p.scans || [];
+        const latestIdx = visits.length - 1;
+        setSelectedVisitIdx(latestIdx);
+        const activeVisit = visits[latestIdx];
+
+        // If a PAR score already exists for this visit, show it immediately
+        if (activeVisit.par_scores && activeVisit.par_scores.length > 0) {
+          setAiValues(activeVisit.par_scores[activeVisit.par_scores.length - 1]);
+          setLoading(false);
+          return;
+        }
+
+        // No score yet — run ML pipeline if scans exist
+        const scans = activeVisit.scans || [];
         if (scans.length === 0) {
-          setLoadingStep("No 3D scans found for this patient.");
+          setLoadingStep("No 3D scans found for this visit. Please upload scans from the Dashboard.");
+          setLoading(false);
           return;
         }
 
@@ -44,22 +68,44 @@ function AnalysisStudio({ patientId }) {
         await Promise.all(scans.map(s => extractLandmarks(s.id)));
 
         setLoadingStep("Computing PAR Mathematical Indices...");
-        const score = await calculateScore(patientId);
-        
+        const score = await calculateScore(activeVisit.id);
+
         if (!isMounted) return;
         setAiValues(score);
+
+        // Re-fetch so scans have populated landmarks for the 3D viewer
+        setLoadingStep("Loading landmark positions into 3D viewer...");
+        const refreshed = await getPatient(patientId);
+        if (!isMounted) return;
+        setPatient(refreshed);
+        setSelectedVisitIdx(refreshed.visits.length - 1);
+
         setLoading(false);
 
       } catch (err) {
         if (!isMounted) return;
         console.error(err);
-        setLoadingStep("Error: " + err.message);
+        setError(err.message || "An unexpected error occurred.");
+        setLoading(false);
       }
     };
-    
+
     processPatient();
     return () => { isMounted = false; };
   }, [patientId]);
+
+  // When user switches visit from the selector dropdown
+  const handleVisitChange = (idx) => {
+    setSelectedVisitIdx(idx);
+    const visit = patient?.visits?.[idx];
+    if (!visit) return;
+    if (visit.par_scores && visit.par_scores.length > 0) {
+      setAiValues(visit.par_scores[visit.par_scores.length - 1]);
+    } else {
+      setAiValues(null);
+    }
+    setOverrides({});
+  };
 
   if (!patientId) {
     return (
@@ -69,7 +115,7 @@ function AnalysisStudio({ patientId }) {
     );
   }
 
-  if (loading || !aiValues) {
+  if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: C.textMuted }}>
         <div className="processing" style={{ width: 40, height: 40, borderRadius: "50%", background: C.blueLight, border: `2px solid ${C.blue}`, marginBottom: 20 }} />
@@ -79,16 +125,40 @@ function AnalysisStudio({ patientId }) {
     );
   }
 
-  // Map frontend component keys to backend ParScoreResponse schema keys
+  if (error) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, color: C.textMuted }}>
+        <div style={{ fontSize: 32 }}>⚠️</div>
+        <div style={{ fontWeight: 600, color: C.red, fontSize: 15 }}>Analysis Error</div>
+        <div style={{ fontSize: 13, color: C.textSub, maxWidth: 380, textAlign: "center" }}>{error}</div>
+      </div>
+    );
+  }
+
+  if (!aiValues) {
+    // Patient loaded but no scores yet (e.g. no scans uploaded)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, color: C.textMuted }}>
+        <div style={{ fontSize: 32 }}>🦷</div>
+        <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{patient?.name || "Patient"}</div>
+        <div style={{ fontSize: 13, color: C.textSub, textAlign: "center", maxWidth: 360 }}>{loadingStep || "No PAR score data available. Upload 3D scans from the Dashboard to begin."}</div>
+      </div>
+    );
+  }
+
+  const visits = patient?.visits || [];
+  const activeVisit = visits[selectedVisitIdx] ?? null;
+  const activeScans = activeVisit?.scans || [];
+
+  // Map PAR_WEIGHTS frontend keys → backend ParScoreResponse field names
+  // PAR_WEIGHTS keys: overjet, overbite, midlineShift, upperCrowding, lowerCrowding, buccalOcclusion
   const dbKeyMap = {
-    upper_anterior: "upper_anterior_score",
-    lower_anterior: "lower_anterior_score",
-    buccal_ap: "buccal_occlusion_antero_posterior_score",
-    buccal_transverse: "buccal_occlusion_transverse_score",
-    buccal_vertical: "buccal_occlusion_vertical_score",
     overjet: "overjet_score",
     overbite: "overbite_score",
-    centreline: "centreline_score"
+    midlineShift: "centreline_score",
+    upperCrowding: "upper_anterior_score",
+    lowerCrowding: "lower_anterior_score",
+    buccalOcclusion: "buccal_occlusion_antero_posterior_score",
   };
 
   const effectiveValues = Object.fromEntries(
@@ -125,34 +195,39 @@ function AnalysisStudio({ patientId }) {
       {/* 3D Viewer Panel */}
       <div className="viewer-panel">
         <div className="viewer-topbar">
-          <div className="viewer-title">{patient ? patient.name : 'Unknown'} - 3D Scan Viewer</div>
+          <div className="viewer-title">{patient ? patient.name : 'Unknown'} — 3D Scan Viewer</div>
           <div className="viewer-controls">
-            <button
-              className={`viewer-btn${showUpper ? " active" : ""}`}
-              onClick={() => setShowUpper(v => !v)}
-            >
+            {/* Visit Selector */}
+            {visits.length > 0 && (
+              <select
+                style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "white", color: C.text, cursor: "pointer", marginRight: 8 }}
+                value={selectedVisitIdx ?? ""}
+                onChange={e => handleVisitChange(Number(e.target.value))}
+              >
+                {visits.map((v, i) => (
+                  <option key={v.id} value={i}>
+                    Visit {i + 1} — {new Date(v.visit_date).toLocaleDateString()} ({v.status})
+                  </option>
+                ))}
+              </select>
+            )}
+            <button className={`viewer-btn${showUpper ? " active" : ""}`} onClick={() => setShowUpper(v => !v)}>
               {Icons.eye} Upper Jaw
             </button>
-            <button
-              className={`viewer-btn${showLower ? " active" : ""}`}
-              onClick={() => setShowLower(v => !v)}
-            >
+            <button className={`viewer-btn${showLower ? " active" : ""}`} onClick={() => setShowLower(v => !v)}>
               {Icons.eye} Lower Jaw
             </button>
-            <button
-              className={`viewer-btn${highlightLandmarks ? " active" : ""}`}
-              onClick={() => setHighlightLandmarks(v => !v)}
-            >
+            <button className={`viewer-btn${highlightLandmarks ? " active" : ""}`} onClick={() => setHighlightLandmarks(v => !v)}>
               {Icons.tooth} Landmarks
             </button>
           </div>
         </div>
         <div className="viewer-canvas">
-          <ThreeViewer 
-            showUpper={showUpper} 
-            showLower={showLower} 
-            highlightLandmarks={highlightLandmarks} 
-            scans={patient?.scans || []} 
+          <ThreeViewer
+            showUpper={showUpper}
+            showLower={showLower}
+            highlightLandmarks={highlightLandmarks}
+            scans={activeScans}
           />
           <div className="viewer-badge">
             Status: <span>{aiValues.model_version === "manual" ? "Manual Inference" : "AI Predicted"}</span>
@@ -168,6 +243,13 @@ function AnalysisStudio({ patientId }) {
             <div className="score-number">{totalScore}</div>
             <div className="score-label">PAR Index Score</div>
           </div>
+          {/* Visit info badge */}
+          {activeVisit && (
+            <div style={{ fontSize: 11, color: C.textSub, marginTop: 4, marginBottom: 4 }}>
+              📅 {new Date(activeVisit.visit_date).toLocaleDateString()} · <span style={{ color: C.blue }}>{activeVisit.status}</span>
+              {visits.length > 1 && <span style={{ color: C.textMuted }}> · Visit {selectedVisitIdx + 1}/{visits.length}</span>}
+            </div>
+          )}
           <div className="score-status-row">
             <span className="badge" style={{ background: statusColors.bg, color: statusColors.text }}>
               <span className="badge-dot" style={{ background: statusColors.dot }} />
@@ -210,9 +292,7 @@ function AnalysisStudio({ patientId }) {
                       <div className="metric-unit">{meta.unit}</div>
                     </td>
                     <td className="metric-cell">
-                      <span className={`ai-value${isOverridden ? " struck" : ""}`}>
-                        {aiVal}
-                      </span>
+                      <span className={`ai-value${isOverridden ? " struck" : ""}`}>{aiVal}</span>
                     </td>
                     <td className="metric-cell">
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

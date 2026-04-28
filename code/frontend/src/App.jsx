@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Component } from "react";
 import Dashboard from './pages/DashboardPage';
 import AnalysisStudio from './pages/AnalysisPage';
 import PatientsPage from './pages/PatientsPage';
@@ -9,6 +9,26 @@ import { useAuth } from './context/AuthContext.jsx';
 import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
 import { styles } from "./utils/styles.js";
+
+// Error boundary catches JS crashes in AnalysisStudio / ThreeViewer
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, message: "" }; }
+  static getDerivedStateFromError(err) { return { hasError: true, message: err?.message || "Unknown error" }; }
+  componentDidCatch(err, info) { console.error("[ErrorBoundary]", err, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, padding: 40 }}>
+          <div style={{ fontSize: 32 }}>⚠️</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#EF4444" }}>Rendering Error</div>
+          <div style={{ fontSize: 13, color: "#64748B", maxWidth: 400, textAlign: "center" }}>{this.state.message}</div>
+          <button onClick={() => this.setState({ hasError: false })} style={{ marginTop: 8, padding: "8px 20px", borderRadius: 8, border: "1px solid #CBD5E1", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Try Again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const { user, loading, logout } = useAuth();
@@ -137,7 +157,9 @@ export default function App() {
 
           {screen === "studio" && (
             <div style={{ flex: 1, overflow: "hidden" }} className="fade-in">
-              <AnalysisStudio patientId={activePatientId} />
+              <ErrorBoundary key={activePatientId}>
+                <AnalysisStudio patientId={activePatientId} />
+              </ErrorBoundary>
             </div>
           )}
 

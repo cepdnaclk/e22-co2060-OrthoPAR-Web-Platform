@@ -55,6 +55,42 @@ def get_patient(
         raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
     return patient
 
+# ---------------- VISITS ----------------
+
+@router.post("/visits", response_model=schemas.VisitResponse)
+def create_visit(
+    visit: schemas.VisitCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Verify patient ownership
+    patient = db.query(models.Patient).filter(
+        models.Patient.id == visit.patient_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
+
+    db_visit = models.Visit(**visit.model_dump())
+    db.add(db_visit)
+    db.commit()
+    db.refresh(db_visit)
+    return db_visit
+
+@router.get("/visits/{visit_id}", response_model=schemas.VisitResponse)
+def get_visit(
+    visit_id: UUID, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
+    return visit
+
 # ---------------- SCANS ----------------
 
 s3_client = boto3.client(
@@ -66,41 +102,48 @@ s3_client = boto3.client(
 
 @router.post("/scans", response_model=schemas.ScanResponse)
 async def upload_scan(
-    patient_id: UUID, 
+    visit_id: UUID, 
     file_type: str, 
     file: UploadFile = File(...), 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # 1. Verify patient exists and belongs to user
-    patient = db.query(models.Patient).filter(
-        models.Patient.id == patient_id,
+    # 1. Verify visit exists and patient belongs to user
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
         models.Patient.clinician_id == current_user.id
     ).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
 
+    patient_id_folder = str(visit.patient_id)
     # 2. Try S3 first, fall back to local storage
     object_key = ""
     file_content = await file.read()
 
     try:
-        s3_key = f"scans/{patient_id}/{file.filename}"
+        s3_key = f"scans/{patient_id_folder}/{file.filename}"
         s3_client.upload_fileobj(io.BytesIO(file_content), settings.S3_BUCKET_NAME, s3_key)
         object_key = s3_key
     except Exception:
         # S3 unavailable — save locally instead
-        # Path relative to backend root
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        uploads_dir = os.path.join(base_dir, "uploads", str(patient_id))
+        uploads_dir = os.path.join(base_dir, "uploads", patient_id_folder)
         os.makedirs(uploads_dir, exist_ok=True)
         local_path = os.path.join(uploads_dir, file.filename)
         with open(local_path, "wb") as f:
             f.write(file_content)
         object_key = local_path
 
-    # 3. Save reference in DB
-    db_scan = models.Scan(patient_id=patient_id, file_type=file_type, object_key=object_key)
+    # 3. Purge any existing scan record of this specific file_type for this visit
+    db.query(models.Scan).filter(
+        models.Scan.visit_id == visit_id,
+        models.Scan.file_type == file_type
+    ).delete()
+    db.commit()
+
+    # 4. Save new reference in DB linked to visit
+    db_scan = models.Scan(visit_id=visit_id, file_type=file_type, object_key=object_key)
     db.add(db_scan)
     db.commit()
     db.refresh(db_scan)
@@ -112,7 +155,7 @@ def get_scan_file(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    scan = db.query(models.Scan).join(models.Patient).filter(
+    scan = db.query(models.Scan).join(models.Visit).join(models.Patient).filter(
         models.Scan.id == scan_id,
         models.Patient.clinician_id == current_user.id
     ).first()
@@ -140,7 +183,7 @@ def extract_landmarks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    scan = db.query(models.Scan).join(models.Patient).filter(
+    scan = db.query(models.Scan).join(models.Visit).join(models.Patient).filter(
         models.Scan.id == scan_id,
         models.Patient.clinician_id == current_user.id
     ).first()
@@ -164,24 +207,24 @@ def extract_landmarks(
     db.commit()
     return db_landmarks
 
-@router.post("/landmarks/calculate/{patient_id}", response_model=schemas.ParScoreResponse)
-def calculate_score_for_patient(
-    patient_id: UUID, 
+@router.post("/landmarks/calculate/{visit_id}", response_model=schemas.ParScoreResponse)
+def calculate_score_for_visit(
+    visit_id: UUID, 
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    patient = db.query(models.Patient).filter(
-        models.Patient.id == patient_id,
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
         models.Patient.clinician_id == current_user.id
     ).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
 
     upper_points = []
     lower_points = []
     buccal_points = []
     
-    for scan in patient.scans:
+    for scan in visit.scans:
         if scan.file_type == "Upper Arch Segment":
             upper_points.extend(scan.landmarks)
         elif scan.file_type == "Lower Arch Segment":
@@ -202,12 +245,14 @@ def calculate_score_for_patient(
     scores = calculate_par_score(upper_points, lower_points, buccal_points)
 
     db_score = models.ParScore(
-        patient_id=patient_id,
+        visit_id=visit_id,
         model_version=active_version,
         **scores
     )
     db.add(db_score)
-    patient.par_score = scores['final_score']
+    
+    # Store most recent score globally on Patient cache
+    visit.patient.par_score = scores['final_score']
     
     db.commit()
     db.refresh(db_score)

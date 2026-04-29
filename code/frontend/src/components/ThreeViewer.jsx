@@ -147,23 +147,50 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
 
                         // Retrieve the physical Mesh Bounding Box dimensions emitted by the STLLoader
                         const geoBox = stlBounds[s.file_type];
-                        let dynamicScale = 1.0;
 
-                        if (geoBox) {
-                            const meshWidth = geoBox.max.x - geoBox.min.x;
+                        // Per-axis scale factors + origin offsets so landmarks align to the actual
+                        // mesh bounding box regardless of coordinate-space aspect ratio or position.
+                        let scaleX = 1.0, scaleY = 1.0, scaleZ = 1.0;
+                        let offsetX = 0.0, offsetY = 0.0, offsetZ = 0.0;
+
+                        if (geoBox && s.landmarks.length > 0) {
                             const xVals = s.landmarks.map(v => v.x);
-                            const lmWidth = Math.max(...xVals) - Math.min(...xVals);
-                            
-                            // Auto-Calculate the physical size translation multiplier precisely on the fly
-                            if (lmWidth > 0.001) {
-                                dynamicScale = meshWidth / lmWidth;
-                            }
+                            const yVals = s.landmarks.map(v => v.y);
+                            const zVals = s.landmarks.map(v => v.z);
+
+                            const lmMinX = Math.min(...xVals), lmMaxX = Math.max(...xVals);
+                            const lmMinY = Math.min(...yVals), lmMaxY = Math.max(...yVals);
+                            const lmMinZ = Math.min(...zVals), lmMaxZ = Math.max(...zVals);
+
+                            const lmSpanX = lmMaxX - lmMinX;
+                            const lmSpanY = lmMaxY - lmMinY;
+                            const lmSpanZ = lmMaxZ - lmMinZ;
+
+                            const meshSpanX = geoBox.max.x - geoBox.min.x;
+                            const meshSpanY = geoBox.max.y - geoBox.min.y;
+                            const meshSpanZ = geoBox.max.z - geoBox.min.z;
+
+                            // Independent per-axis scale so every dimension matches the mesh exactly
+                            if (lmSpanX > 0.001) scaleX = meshSpanX / lmSpanX;
+                            if (lmSpanY > 0.001) scaleY = meshSpanY / lmSpanY;
+                            if (lmSpanZ > 0.001) scaleZ = meshSpanZ / lmSpanZ;
+
+                            // Translate so the landmark cloud's minimum corner aligns with the
+                            // mesh bounding-box minimum — eliminates origin drift when the mesh
+                            // is not centred at (0, 0, 0).
+                            offsetX = geoBox.min.x - lmMinX * scaleX;
+                            offsetY = geoBox.min.y - lmMinY * scaleY;
+                            offsetZ = geoBox.min.z - lmMinZ * scaleZ;
                         }
 
                         return (
                             <group key={`ai-lm-group-${s.id}`}>
                                 {s.landmarks.map((lm, idx) => {
-                                    const pos = [lm.x * dynamicScale, lm.y * dynamicScale, lm.z * dynamicScale];
+                                    const pos = [
+                                        lm.x * scaleX + offsetX,
+                                        lm.y * scaleY + offsetY,
+                                        lm.z * scaleZ + offsetZ,
+                                    ];
                                     return (
                                         <group key={`ai-lm-${lm.id || idx}`} position={pos}>
                                             <Sphere args={[0.6, 16, 16]}>

@@ -2,6 +2,7 @@ import React, { useState, Suspense, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text, Html, Center, Line } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import * as THREE from 'three';
 import { METRIC_STL_MAP } from '../utils/constants.js';
 
 
@@ -253,6 +254,11 @@ export default function ThreeViewer({ showUpper, showLower, showBuccal = true, s
                 dampingFactor={0.05} 
                 maxDistance={20}
                 minDistance={2}
+                mouseButtons={{
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.PAN,
+                    RIGHT: THREE.MOUSE.PAN
+                }}
             />
         </Canvas>
         

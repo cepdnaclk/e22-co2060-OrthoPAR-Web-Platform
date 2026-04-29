@@ -2,6 +2,8 @@ import React, { useState, Suspense, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text, Html, Center, Line } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { METRIC_STL_MAP } from '../utils/constants.js';
+
 
 // Renders an actual STL mesh dynamically fetched securely from the backend
 function STLMesh({ url, position, color, onAddLandmark, onLoadGeometry }) {
@@ -62,9 +64,10 @@ class MeshErrorBoundary extends React.Component {
   }
 }
 
-function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans, onBoundsLoad }) {
+function JawModel({ showUpper, showLower, showBuccal, onAddLandmark, scans, onBoundsLoad }) {
   const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
   const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
+  const buccalScanUrl = scans.find(s => s.file_type === "Buccal Segment")?.id;
 
   return (
     <group>
@@ -99,7 +102,22 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
       ) : showLower && (
          <FallbackMesh message="No Lower Arch found" />
       )}
-      
+
+      {showBuccal && buccalScanUrl ? (
+        <MeshErrorBoundary>
+          <Suspense fallback={<FallbackMesh message="Downloading Buccal STL..." />}>
+            <STLMesh 
+              url={`http://localhost:8000/api/analysis/scans/file/${buccalScanUrl}`}
+              position={[0, 0, 0]} 
+              color="#F0FDF4"
+              onAddLandmark={onAddLandmark}
+              onLoadGeometry={(box) => onBoundsLoad("Buccal Segment", box)}
+            />
+          </Suspense>
+        </MeshErrorBoundary>
+      ) : showBuccal && (
+         <FallbackMesh message="No Buccal Segment found" />
+      )}
     </group>
   );
 }
@@ -107,9 +125,21 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
 
 
 
-export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [], activeMeasureMetric, measurePoints = [], onAddMeasurePoint }) {
+export default function ThreeViewer({ showUpper, showLower, showBuccal = true, stepVisibility, highlightLandmarks, scans = [], activeMeasureMetric, measurePoints = [], onAddMeasurePoint }) {
   const [landmarks, setLandmarks] = useState([]);
   const [stlBounds, setStlBounds] = useState({});
+
+  // Priority: stepVisibility (per-click) > METRIC_STL_MAP (per-metric) > manual toggles
+  const { effUpper, effLower, effBuccal } = useMemo(() => {
+    if (stepVisibility) {
+      return { effUpper: stepVisibility.upper, effLower: stepVisibility.lower, effBuccal: stepVisibility.buccal };
+    }
+    if (activeMeasureMetric && METRIC_STL_MAP[activeMeasureMetric]) {
+      const m = METRIC_STL_MAP[activeMeasureMetric];
+      return { effUpper: m.upper, effLower: m.lower, effBuccal: m.buccal };
+    }
+    return { effUpper: showUpper, effLower: showLower, effBuccal: showBuccal };
+  }, [stepVisibility, activeMeasureMetric, showUpper, showLower, showBuccal]);
 
   const handlePointerDown = (e) => {
     e.stopPropagation();
@@ -135,9 +165,9 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
             <Center>
                 <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
                     <JawModel 
-                        showUpper={showUpper} 
-                        showLower={showLower} 
-                        highlightLandmarks={highlightLandmarks}
+                        showUpper={effUpper} 
+                        showLower={effLower}
+                        showBuccal={effBuccal}
                         onAddLandmark={handlePointerDown} 
                         scans={scans}
                         onBoundsLoad={handleBoundsLoad}
@@ -145,8 +175,9 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
 
                     {/* Render pre-calculated Backend AI landmarks mapped dynamically to geometric bounds */}
                     {highlightLandmarks && scans.map(s => {
-                        if (s.file_type === "Upper Arch Segment" && !showUpper) return null;
-                        if (s.file_type === "Lower Arch Segment" && !showLower) return null;
+                        if (s.file_type === "Upper Arch Segment" && !effUpper) return null;
+                        if (s.file_type === "Lower Arch Segment" && !effLower) return null;
+                        if (s.file_type === "Buccal Segment" && !effBuccal) return null;
                         if (!s.landmarks || s.landmarks.length === 0) return null;
 
                         // Retrieve the physical Mesh Bounding Box dimensions emitted by the STLLoader
@@ -201,7 +232,7 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
             ))}
 
             {/* Render active measurement points in WORLD space */}
-            {measurePoints.map((pos, idx) => (
+            {measurePoints.length === 2 && measurePoints.map((pos, idx) => (
                 <Sphere key={`measure-${idx}`} position={pos} args={[0.15, 16, 16]}>
                     <meshStandardMaterial color="#3B82F6" roughness={0.2} emissive="#3B82F6" emissiveIntensity={0.5} />
                 </Sphere>

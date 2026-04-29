@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { C, STATUS_COLORS, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
-import { getPatients, uploadScan, getPatient, createVisit } from "../utils/api.js";
+import { getPatients, uploadScan, getPatient, createVisit, updateVisit } from "../utils/api.js";
 import "./DashboardPage.css"; // Moved inline styles into this file
 
 function Dashboard({ onAnalyze }) {
@@ -15,6 +15,7 @@ function Dashboard({ onAnalyze }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [doctorNotes, setDoctorNotes] = useState("");
 
   // --- Data Fetching ---
   // Load patients immediately on mount to populate the dropdown
@@ -56,6 +57,12 @@ function Dashboard({ onAnalyze }) {
       
       if (!targetVisitId) {
           throw new Error("Unable to establish a secure Visit context string.");
+      }
+
+      // If doctor provided notes, update the visit
+      if (doctorNotes.trim()) {
+          setUploadProgress("Saving doctor's notes...");
+          await updateVisit(targetVisitId, doctorNotes);
       }
 
       // Sequentially upload each model segment to the selected visit bucket
@@ -149,6 +156,21 @@ function Dashboard({ onAnalyze }) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Step 3: Doctor's Notes (Optional) */}
+        <div className="dashboard-section-wrap">
+          <label className="dashboard-label">
+            3. Doctor's Notes <span style={{ color: C.textSub, fontSize: 11, fontWeight: 'normal' }}>(Optional)</span>
+          </label>
+          <textarea
+            className="search-input"
+            style={{ width: '100%', height: '80px', padding: '12px', resize: 'vertical' }}
+            placeholder="Add any specific clinical notes or observations for this scan..."
+            value={doctorNotes}
+            onChange={(e) => setDoctorNotes(e.target.value)}
+            disabled={uploading}
+          />
         </div>
 
         {/* Feedback / Progress Messages */}

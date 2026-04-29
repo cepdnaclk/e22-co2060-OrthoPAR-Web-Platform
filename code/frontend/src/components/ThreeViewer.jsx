@@ -1,7 +1,22 @@
 import React, { useState, Suspense, useMemo } from 'react';
+import * as THREE from 'three';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Sphere, Text, Html, Center, Line } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+
+// --- Sub-components for Modularity ---
+
+function SceneLights() {
+  return (
+    <>
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[120, 200, 100]} intensity={1.4} castShadow shadow-mapSize={[2048, 2048]} />
+      <directionalLight position={[-100, 60, -90]} intensity={0.65} color="#dae6f5" />
+      <directionalLight position={[0, -80, -150]} intensity={0.4} color="#fff6ee" />
+      <directionalLight position={[0, -200, 60]} intensity={0.2} />
+    </>
+  );
+}
 
 // Renders an actual STL mesh dynamically fetched securely from the backend
 function STLMesh({ url, position, color, onAddLandmark, onLoadGeometry }) {
@@ -32,7 +47,7 @@ function STLMesh({ url, position, color, onAddLandmark, onLoadGeometry }) {
       receiveShadow
     >
       <primitive object={geometry} attach="geometry" />
-      <meshStandardMaterial color={color} roughness={0.4} />
+      <meshStandardMaterial color="#c6c6c6" roughness={0.58} metalness={0.0} />
     </mesh>
   );
 }
@@ -42,7 +57,16 @@ function FallbackMesh({ message }) {
   return (
     <group>
       <Html center>
-        <div style={{ color: "#3B82F6", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: "white", padding: "4px 8px", borderRadius: 4, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#3B82F6", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: "rgba(255, 255, 255, 0.9)", padding: "8px 16px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
+          <div style={{ border: '2px solid #E2E8F0', borderTop: '2px solid #3B82F6', borderRadius: '50%', width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
           {message}
         </div>
       </Html>
@@ -127,10 +151,12 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-        <Canvas camera={{ position: [0, 8, 8], fov: 45 }} shadows>
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-            <directionalLight position={[-10, 10, -5]} intensity={0.5} />
+        <Canvas 
+            camera={{ position: [0, 8, 8], fov: 45 }} 
+            shadows
+            gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, antialias: true }}
+        >
+            <SceneLights />
             
             <Center>
                 <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
@@ -151,23 +177,32 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
 
                         // Retrieve the physical Mesh Bounding Box dimensions emitted by the STLLoader
                         const geoBox = stlBounds[s.file_type];
-                        let dynamicScale = 1.0;
+                        let scaleX = 1.0;
+                        let scaleY = 1.0;
+                        let scaleZ = 1.0;
 
                         if (geoBox) {
                             const meshWidth = geoBox.max.x - geoBox.min.x;
+                            const meshHeight = geoBox.max.y - geoBox.min.y;
+                            const meshDepth = geoBox.max.z - geoBox.min.z;
+
                             const xVals = s.landmarks.map(v => v.x);
+                            const yVals = s.landmarks.map(v => v.y);
+                            const zVals = s.landmarks.map(v => v.z);
+
                             const lmWidth = Math.max(...xVals) - Math.min(...xVals);
+                            const lmHeight = Math.max(...yVals) - Math.min(...yVals);
+                            const lmDepth = Math.max(...zVals) - Math.min(...zVals);
                             
-                            // Auto-Calculate the physical size translation multiplier precisely on the fly
-                            if (lmWidth > 0.001) {
-                                dynamicScale = meshWidth / lmWidth;
-                            }
+                            if (lmWidth > 0.001) scaleX = meshWidth / lmWidth;
+                            if (lmHeight > 0.001) scaleY = meshHeight / lmHeight;
+                            if (lmDepth > 0.001) scaleZ = meshDepth / lmDepth;
                         }
 
                         return (
                             <group key={`ai-lm-group-${s.id}`}>
                                 {s.landmarks.map((lm, idx) => {
-                                    const pos = [lm.x * dynamicScale, lm.y * dynamicScale, lm.z * dynamicScale];
+                                    const pos = [lm.x * scaleX, lm.y * scaleY, lm.z * scaleZ];
                                     return (
                                         <group key={`ai-lm-${lm.id || idx}`} position={pos}>
                                             <Sphere args={[0.6, 16, 16]}>

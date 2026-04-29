@@ -7,19 +7,25 @@ class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
     password: str
+    role: str = "ORTHODONTIST"
     hospital_name: Optional[str] = None
     slmc_registration_number: Optional[str] = None
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
+    university: Optional[str] = None
+    student_reg_no: Optional[str] = None
 
 class User(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    role: str
     hospital_name: Optional[str] = None
     slmc_registration_number: Optional[str] = None
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
+    university: Optional[str] = None
+    student_reg_no: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
@@ -32,6 +38,8 @@ class UserUpdate(BaseModel):
     slmc_registration_number: Optional[str] = None
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
+    university: Optional[str] = None
+    student_reg_no: Optional[str] = None
 
 class UserPasswordUpdate(BaseModel):
     current_password: str
@@ -41,6 +49,20 @@ class ModelResponse(BaseModel):
     model_id: UUID
     file_name: str
     status: str
+    model_config = ConfigDict(from_attributes=True)
+
+class StudentUploadBase(BaseModel):
+    note: Optional[str] = None
+
+class StudentUploadCreate(StudentUploadBase):
+    pass
+
+class StudentUploadResponse(StudentUploadBase):
+    id: UUID
+    student_id: int
+    file_name: str
+    object_key: str
+    uploaded_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 # --- Clinical Schemas ---
@@ -116,6 +138,10 @@ class VisitBase(BaseModel):
 
 class VisitCreate(VisitBase):
     patient_id: UUID
+
+class VisitUpdate(BaseModel):
+    notes: Optional[str] = None
+    status: Optional[str] = None
 
 class VisitResponse(VisitBase):
     id: UUID

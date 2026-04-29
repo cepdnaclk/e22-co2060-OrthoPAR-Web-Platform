@@ -47,7 +47,7 @@ export async function login(email, password) {
   return data;
 }
 
-export async function register(email, fullName, password, hospitalName, slmcRegistrationNumber, specialty, phoneNumber) {
+export async function register(email, fullName, password, hospitalName, slmcRegistrationNumber, specialty, phoneNumber, role, university, studentRegNo) {
   return request("/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -58,7 +58,10 @@ export async function register(email, fullName, password, hospitalName, slmcRegi
       hospital_name: hospitalName || null,
       slmc_registration_number: slmcRegistrationNumber || null,
       specialty: specialty || null,
-      phone_number: phoneNumber || null
+      phone_number: phoneNumber || null,
+      role: role || "ORTHODONTIST",
+      university: university || null,
+      student_reg_no: studentRegNo || null
     }),
   });
 }
@@ -118,6 +121,14 @@ export async function createVisit(patientId, notes = "", status = "Pre-Treatment
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ patient_id: patientId, notes, status }),
+  });
+}
+
+export async function updateVisit(visitId, notes) {
+  return request(`/api/analysis/visits/${visitId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes }),
   });
 }
 

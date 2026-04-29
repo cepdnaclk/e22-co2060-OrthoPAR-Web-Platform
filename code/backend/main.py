@@ -69,10 +69,13 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_pw,
+        role=user.role,
         hospital_name=user.hospital_name,
         slmc_registration_number=user.slmc_registration_number,
         specialty=user.specialty,
-        phone_number=user.phone_number
+        phone_number=user.phone_number,
+        university=user.university,
+        student_reg_no=user.student_reg_no
     )
 
     db.add(new_user)
@@ -168,6 +171,8 @@ def update_user_me(user_update: schemas.UserUpdate, current_user: models.User = 
     if user_update.slmc_registration_number is not None: current_user.slmc_registration_number = user_update.slmc_registration_number
     if user_update.specialty is not None: current_user.specialty = user_update.specialty
     if user_update.phone_number is not None: current_user.phone_number = user_update.phone_number
+    if user_update.university is not None: current_user.university = user_update.university
+    if user_update.student_reg_no is not None: current_user.student_reg_no = user_update.student_reg_no
     db.commit()
     db.refresh(current_user)
     return current_user

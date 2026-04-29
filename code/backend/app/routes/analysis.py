@@ -92,6 +92,29 @@ def get_visit(
         raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
     return visit
 
+@router.put("/visits/{visit_id}", response_model=schemas.VisitResponse)
+def update_visit(
+    visit_id: UUID,
+    visit_update: schemas.VisitUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
+
+    if visit_update.notes is not None:
+        visit.notes = visit_update.notes
+    if visit_update.status is not None:
+        visit.status = visit_update.status
+
+    db.commit()
+    db.refresh(visit)
+    return visit
+
 # ---------------- SCANS ----------------
 
 s3_client = boto3.client(
@@ -452,3 +475,45 @@ def get_reports(
         reports.append(report)
         
     return reports
+
+# ---------------- STUDENT UPLOAD ----------------
+
+@router.post("/student/upload", response_model=schemas.StudentUploadResponse)
+async def student_upload(
+    file: UploadFile = File(...),
+    note: str = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.role != "STUDENT":
+        raise HTTPException(status_code=403, detail="Only students can upload testing data")
+
+    student_id_folder = str(current_user.id)
+    file_content = await file.read()
+    object_key = ""
+
+    try:
+        s3_key = f"student_data/{student_id_folder}/{file.filename}"
+        s3_client.upload_fileobj(io.BytesIO(file_content), settings.S3_BUCKET_NAME, s3_key)
+        object_key = s3_key
+    except Exception:
+        # Local fallback
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        uploads_dir = os.path.join(base_dir, "uploads", "student_data", student_id_folder)
+        os.makedirs(uploads_dir, exist_ok=True)
+        local_path = os.path.join(uploads_dir, file.filename)
+        with open(local_path, "wb") as f:
+            f.write(file_content)
+        object_key = local_path
+
+    db_upload = models.StudentUpload(
+        student_id=current_user.id,
+        file_name=file.filename,
+        object_key=object_key,
+        note=note
+    )
+    db.add(db_upload)
+    db.commit()
+    db.refresh(db_upload)
+    
+    return db_upload

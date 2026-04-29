@@ -11,11 +11,17 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   
+  const [role, setRole] = useState("ORTHODONTIST");
+  
   // Clinical Registration Fields
   const [hospitalName, setHospitalName] = useState("");
   const [slmc, setSlmc] = useState("");
   const [specialty, setSpecialty] = useState("Orthodontist");
   const [phone, setPhone] = useState("");
+
+  // Student Registration Fields
+  const [university, setUniversity] = useState("");
+  const [studentRegNo, setStudentRegNo] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +50,7 @@ export default function AuthPage() {
     if (!fullName.trim()) { setError("Full name is required."); return; }
     setLoading(true);
     try {
-      await apiRegister(email, fullName, password, hospitalName, slmc, specialty, phone);
+      await apiRegister(email, fullName, password, hospitalName, slmc, specialty, phone, role, university, studentRegNo);
       setSuccess("Account created! You can now log in.");
       setTab("login");
       setFullName("");
@@ -52,6 +58,8 @@ export default function AuthPage() {
       setHospitalName("");
       setSlmc("");
       setPhone("");
+      setUniversity("");
+      setStudentRegNo("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -97,6 +105,19 @@ export default function AuthPage() {
             {tab === "register" && (
               <>
                 <div className="auth-field">
+                  <label className="auth-label">Role</label>
+                  <select 
+                      className="auth-input" 
+                      value={role} 
+                      onChange={e => setRole(e.target.value)}
+                      style={{ height: '44px', padding: '0 12px' }}
+                  >
+                      <option value="ORTHODONTIST">Orthodontist</option>
+                      <option value="STUDENT">Undergraduate Student</option>
+                  </select>
+                </div>
+
+                <div className="auth-field">
                   <label className="auth-label">Full Name</label>
                   <input
                     className={`auth-input${error && !fullName ? " error" : ""}`}
@@ -109,54 +130,96 @@ export default function AuthPage() {
                   />
                 </div>
                 
-                <div className="auth-field">
-                  <label className="auth-label">Hospital/Clinic Name <span style={{color: "#888", fontSize: "0.8em"}}>(Optional)</span></label>
-                  <input
-                    className="auth-input"
-                    type="text"
-                    placeholder="e.g. Asiri Medical"
-                    value={hospitalName}
-                    onChange={e => setHospitalName(e.target.value)}
-                  />
-                </div>
-
-                <div className="auth-field">
-                  <label className="auth-label">SLMC Registration Number <span style={{color: "#888", fontSize: "0.8em"}}>(Recommended)</span></label>
-                  <input
-                    className="auth-input"
-                    type="text"
-                    placeholder="e.g. SLMC-10933"
-                    value={slmc}
-                    onChange={e => setSlmc(e.target.value)}
-                  />
-                </div>
-
-                <div className="auth-field" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                        <label className="auth-label">Specialty</label>
-                        <select 
-                            className="auth-input" 
-                            value={specialty} 
-                            onChange={e => setSpecialty(e.target.value)}
-                            style={{ height: '44px', padding: '0 12px' }}
-                        >
-                            <option value="Orthodontist">Orthodontist</option>
-                            <option value="General Dentist">General Dentist</option>
-                            <option value="Maxillofacial Surgeon">Maxillofacial Surgeon</option>
-                            <option value="Resident/Student">Resident/Student</option>
-                        </select>
+                {role === "ORTHODONTIST" && (
+                  <>
+                    <div className="auth-field">
+                      <label className="auth-label">Hospital/Clinic Name <span style={{color: "#888", fontSize: "0.8em"}}>(Optional)</span></label>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        placeholder="e.g. Asiri Medical"
+                        value={hospitalName}
+                        onChange={e => setHospitalName(e.target.value)}
+                      />
                     </div>
-                    <div>
-                        <label className="auth-label">Contact Phone</label>
-                        <input
-                            className="auth-input"
-                            type="tel"
-                            placeholder="+94 77 XXXXXXX"
-                            value={phone}
-                            onChange={e => setPhone(e.target.value)}
-                        />
+
+                    <div className="auth-field">
+                      <label className="auth-label">SLMC Registration Number <span style={{color: "#888", fontSize: "0.8em"}}>(Recommended)</span></label>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        placeholder="e.g. SLMC-10933"
+                        value={slmc}
+                        onChange={e => setSlmc(e.target.value)}
+                      />
                     </div>
-                </div>
+
+                    <div className="auth-field" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <label className="auth-label">Specialty</label>
+                            <select 
+                                className="auth-input" 
+                                value={specialty} 
+                                onChange={e => setSpecialty(e.target.value)}
+                                style={{ height: '44px', padding: '0 12px' }}
+                            >
+                                <option value="Orthodontist">Orthodontist</option>
+                                <option value="General Dentist">General Dentist</option>
+                                <option value="Maxillofacial Surgeon">Maxillofacial Surgeon</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="auth-label">Contact Phone</label>
+                            <input
+                                className="auth-input"
+                                type="tel"
+                                placeholder="+94 77 XXXXXXX"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                  </>
+                )}
+
+                {role === "STUDENT" && (
+                  <>
+                    <div className="auth-field">
+                      <label className="auth-label">University</label>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        placeholder="e.g. University of Peradeniya"
+                        value={university}
+                        onChange={e => setUniversity(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="auth-field">
+                      <label className="auth-label">Student Reg No.</label>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        placeholder="e.g. E/18/123"
+                        value={studentRegNo}
+                        onChange={e => setStudentRegNo(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="auth-field">
+                      <label className="auth-label">Contact Phone <span style={{color: "#888", fontSize: "0.8em"}}>(Optional)</span></label>
+                      <input
+                        className="auth-input"
+                        type="tel"
+                        placeholder="+94 77 XXXXXXX"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 

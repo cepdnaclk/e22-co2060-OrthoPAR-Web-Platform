@@ -12,14 +12,22 @@ class User(Base):
     full_name = Column(String)
     hashed_password = Column(String)
     
-    # Clinical Affiliation Data
+    # RBAC
+    role = Column(String, default="ORTHODONTIST") # ORTHODONTIST, ADMIN, STUDENT
+    
+    # Clinical Affiliation Data (for ORTHODONTIST)
     hospital_name = Column(String, nullable=True)
     slmc_registration_number = Column(String, nullable=True)
     specialty = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
 
+    # Student Data (for STUDENT)
+    university = Column(String, nullable=True)
+    student_reg_no = Column(String, nullable=True)
+
     models = relationship("Model", back_populates="owner")
     patients = relationship("Patient", back_populates="clinician")
+    student_uploads = relationship("StudentUpload", back_populates="student", cascade="all, delete")
 
 class Model(Base):
     __tablename__ = "models"
@@ -33,6 +41,18 @@ class Model(Base):
     status = Column(String, default="uploaded")
 
     owner = relationship("User", back_populates="models")
+
+class StudentUpload(Base):
+    __tablename__ = "student_uploads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    student_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    file_name = Column(String)
+    object_key = Column(String)
+    note = Column(String, nullable=True)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("User", back_populates="student_uploads")
 
 # --- Clinical Models ---
 

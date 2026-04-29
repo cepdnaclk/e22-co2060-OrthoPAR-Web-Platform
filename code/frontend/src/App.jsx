@@ -5,6 +5,7 @@ import PatientsPage from './pages/PatientsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
+import StudentDashboard from './pages/StudentDashboard';
 import { useAuth } from './context/AuthContext.jsx';
 import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
@@ -37,6 +38,12 @@ export default function App() {
   const [activePatientId, setActivePatientId] = useState(null);
   const [reportPatientId, setReportPatientId] = useState(null);
 
+  // If student logs in, default to student screen
+  if (user && user.role === "STUDENT" && screen !== "student_upload" && screen !== "settings") {
+    setScreen("student_upload");
+    setActiveNav("student_upload");
+  }
+
   // While checking stored token, show nothing (avoid flash)
   if (loading) {
     return (
@@ -58,11 +65,15 @@ export default function App() {
     : user.email.slice(0, 2).toUpperCase();
   const displayName = user.full_name || user.email;
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: Icons.home },
-    { id: "studio", label: "Analysis Studio", icon: Icons.scan },
-    { id: "patients", label: "Patients", icon: Icons.patients },
-  ];
+  const navItems = user.role === "STUDENT" 
+    ? [
+        { id: "student_upload", label: "Upload Scan", icon: Icons.upload },
+      ]
+    : [
+        { id: "dashboard", label: "Dashboard", icon: Icons.home },
+        { id: "studio", label: "Analysis Studio", icon: Icons.scan },
+        { id: "patients", label: "Patients", icon: Icons.patients },
+      ];
 
   const handleAnalyze = (patientId) => {
     setActivePatientId(patientId);
@@ -82,6 +93,7 @@ export default function App() {
     patients: { title: "Patients", sub: "All patient records" },
     reports: { title: "Patient Report", sub: reportPatientId ? "Trend analysis & visit history" : "Select a patient to view their report" },
     settings: { title: "Settings", sub: "Account & preferences" },
+    student_upload: { title: "Student Portal", sub: "Contribute testing data" },
   };
 
   return (
@@ -134,7 +146,7 @@ export default function App() {
             <div className="avatar">{initials}</div>
             <div>
               <div className="avatar-name">{displayName}</div>
-              <div className="avatar-role">{user.email}</div>
+              <div className="avatar-role" style={{ fontSize: '11px', textTransform: 'uppercase', color: C.blue, fontWeight: 600 }}>{user.role}</div>
             </div>
           </div>
         </aside>
@@ -177,6 +189,7 @@ export default function App() {
             />
           )}
           {screen === "settings" && <SettingsPage />}
+          {screen === "student_upload" && <StudentDashboard />}
         </div>
       </div>
     </>

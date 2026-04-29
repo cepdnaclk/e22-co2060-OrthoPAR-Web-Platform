@@ -31,7 +31,8 @@ services:
       - "8000:8000"
     restart: always
     volumes:
-      - ./code/backend/ml_models:/app/ml_models  # Map ML model payload weights if they exist persistently outside
+      - ./code/backend/ml_models:/app/ml_models
+      - uploads_data:/app/uploads
     depends_on:
       - db_postgres
     networks:
@@ -52,6 +53,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   orthopar_net:

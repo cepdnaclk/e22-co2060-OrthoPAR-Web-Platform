@@ -7,16 +7,35 @@ class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
     password: str
+    hospital_name: Optional[str] = None
+    slmc_registration_number: Optional[str] = None
+    specialty: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class User(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    hospital_name: Optional[str] = None
+    slmc_registration_number: Optional[str] = None
+    specialty: Optional[str] = None
+    phone_number: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    hospital_name: Optional[str] = None
+    slmc_registration_number: Optional[str] = None
+    specialty: Optional[str] = None
+    phone_number: Optional[str] = None
+
+class UserPasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
 
 class ModelResponse(BaseModel):
     model_id: UUID
@@ -46,11 +65,11 @@ class ScanBase(BaseModel):
     object_key: str
 
 class ScanCreate(ScanBase):
-    patient_id: UUID
+    visit_id: UUID
 
 class ScanResponse(ScanBase):
     id: UUID
-    patient_id: UUID
+    visit_id: UUID
     uploaded_at: datetime
     landmarks: List[LandmarkResponse] = []
     model_config = ConfigDict(from_attributes=True)
@@ -67,11 +86,11 @@ class ParScoreBase(BaseModel):
     final_score: int
 
 class ParScoreCreate(ParScoreBase):
-    patient_id: UUID
+    visit_id: UUID
 
 class ParScoreResponse(ParScoreBase):
     id: UUID
-    patient_id: UUID
+    visit_id: UUID
     calculated_at: datetime
     model_version: Optional[str] = None
     is_partial: bool = False
@@ -83,18 +102,35 @@ class ParScoreResponse(ParScoreBase):
 
 class PatientBase(BaseModel):
     name: str
+    hospital_patient_id: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    gender: Optional[str] = None
     treatment_status: str
 
 class PatientCreate(PatientBase):
     pass
+
+class VisitBase(BaseModel):
+    notes: Optional[str] = None
+    status: str = "Pre-Treatment"
+
+class VisitCreate(VisitBase):
+    patient_id: UUID
+
+class VisitResponse(VisitBase):
+    id: UUID
+    patient_id: UUID
+    visit_date: datetime
+    scans: List[ScanResponse] = []
+    par_scores: List[ParScoreResponse] = []
+    model_config = ConfigDict(from_attributes=True)
 
 class PatientResponse(PatientBase):
     id: UUID
     par_score: Optional[float] = None
     created_at: datetime
     updated_at: datetime
-    scans: List[ScanResponse] = []
-    par_scores: List[ParScoreResponse] = []
+    visits: List[VisitResponse] = []
     model_config = ConfigDict(from_attributes=True)
 
 class MLModelBase(BaseModel):
@@ -107,3 +143,10 @@ class MLModelResponse(MLModelBase):
     file_path: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class ReportResponse(ParScoreResponse):
+    patient_name: str
+    patient_id: UUID
+    hospital_patient_id: Optional[str] = None
+    visit_notes: Optional[str] = None
+    visit_date: datetime

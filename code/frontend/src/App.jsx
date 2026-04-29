@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Component } from "react";
 import Dashboard from './pages/DashboardPage';
 import AnalysisStudio from './pages/AnalysisPage';
 import PatientsPage from './pages/PatientsPage';
@@ -10,11 +10,32 @@ import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
 import { styles } from "./utils/styles.js";
 
+// Error boundary catches JS crashes in AnalysisStudio / ThreeViewer
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, message: "" }; }
+  static getDerivedStateFromError(err) { return { hasError: true, message: err?.message || "Unknown error" }; }
+  componentDidCatch(err, info) { console.error("[ErrorBoundary]", err, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, padding: 40 }}>
+          <div style={{ fontSize: 32 }}>⚠️</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#EF4444" }}>Rendering Error</div>
+          <div style={{ fontSize: 13, color: "#64748B", maxWidth: 400, textAlign: "center" }}>{this.state.message}</div>
+          <button onClick={() => this.setState({ hasError: false })} style={{ marginTop: 8, padding: "8px 20px", borderRadius: 8, border: "1px solid #CBD5E1", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Try Again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const { user, loading, logout } = useAuth();
   const [screen, setScreen] = useState("dashboard");
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activePatientId, setActivePatientId] = useState(null);
+  const [reportPatientId, setReportPatientId] = useState(null);
 
   // While checking stored token, show nothing (avoid flash)
   if (loading) {
@@ -41,7 +62,6 @@ export default function App() {
     { id: "dashboard", label: "Dashboard", icon: Icons.home },
     { id: "studio", label: "Analysis Studio", icon: Icons.scan },
     { id: "patients", label: "Patients", icon: Icons.patients },
-    { id: "reports", label: "Reports", icon: Icons.reports },
   ];
 
   const handleAnalyze = (patientId) => {
@@ -50,11 +70,17 @@ export default function App() {
     setActiveNav("studio");
   };
 
+  const handleViewReport = (patientId) => {
+    setReportPatientId(patientId);
+    setScreen("reports");
+    setActiveNav("reports");
+  };
+
   const titles = {
     dashboard: { title: "Dashboard", sub: `Welcome back, ${displayName}` },
     studio: { title: "Analysis Studio", sub: "Interactive PAR Index Calculator" },
     patients: { title: "Patients", sub: "All patient records" },
-    reports: { title: "Reports", sub: "Saved analysis reports" },
+    reports: { title: "Patient Report", sub: reportPatientId ? "Trend analysis & visit history" : "Select a patient to view their report" },
     settings: { title: "Settings", sub: "Account & preferences" },
   };
 
@@ -137,12 +163,19 @@ export default function App() {
 
           {screen === "studio" && (
             <div style={{ flex: 1, overflow: "hidden" }} className="fade-in">
-              <AnalysisStudio patientId={activePatientId} />
+              <ErrorBoundary key={activePatientId}>
+                <AnalysisStudio patientId={activePatientId} />
+              </ErrorBoundary>
             </div>
           )}
 
-          {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} />}
-          {screen === "reports" && <ReportsPage />}
+          {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} onViewReport={handleViewReport} />}
+          {screen === "reports" && (
+            <ReportsPage
+              patientId={reportPatientId}
+              onBack={() => { setScreen("patients"); setActiveNav("patients"); }}
+            />
+          )}
           {screen === "settings" && <SettingsPage />}
         </div>
       </div>

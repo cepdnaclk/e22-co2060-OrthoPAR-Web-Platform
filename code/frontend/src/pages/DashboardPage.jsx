@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { C, STATUS_COLORS, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
-import { getPatients, uploadScan } from "../utils/api.js";
+import { getPatients, uploadScan, getPatient, createVisit } from "../utils/api.js";
 import "./DashboardPage.css"; // Moved inline styles into this file
 
 function Dashboard({ onAnalyze }) {
@@ -40,15 +40,33 @@ function Dashboard({ onAnalyze }) {
     setUploadError("");
     
     try {
-      // Sequentially upload each model segment to the selected patient's bucket
+      setUploadProgress("Aligning medical visit routing context...");
+      const fullPatient = await getPatient(selectedPatientId);
+      
+      let targetVisitId = null;
+      if (fullPatient.visits && fullPatient.visits.length > 0) {
+          // Always map uploads to the patient's newest visit
+          targetVisitId = fullPatient.visits[fullPatient.visits.length - 1].id;
+      } else {
+          // BACKWARD COMPATIBILITY: Auto-generate a Visit if an older Patient lacks one!
+          setUploadProgress("Legacy Patient detected. Auto-generating Initial Visit array...");
+          const newVisit = await createVisit(selectedPatientId, "Auto-generated Initial Appointment", "Pre-Treatment");
+          targetVisitId = newVisit.id;
+      }
+      
+      if (!targetVisitId) {
+          throw new Error("Unable to establish a secure Visit context string.");
+      }
+
+      // Sequentially upload each model segment to the selected visit bucket
       setUploadProgress("Uploading Upper Arch...");
-      await uploadScan(selectedPatientId, "Upper Arch Segment", scans.upper);
+      await uploadScan(targetVisitId, "Upper Arch Segment", scans.upper);
       
       setUploadProgress("Uploading Lower Arch...");
-      await uploadScan(selectedPatientId, "Lower Arch Segment", scans.lower);
+      await uploadScan(targetVisitId, "Lower Arch Segment", scans.lower);
       
       setUploadProgress("Uploading Buccal Segment...");
-      await uploadScan(selectedPatientId, "Buccal Segment", scans.buccal);
+      await uploadScan(targetVisitId, "Buccal Segment", scans.buccal);
       
       setUploadProgress("Success! Starting Analysis...");
       
@@ -72,20 +90,6 @@ function Dashboard({ onAnalyze }) {
 
   return (
     <div>
-      <div className="stat-grid">
-        {[
-          { label: "Total Patients", value: "247", delta: "+12 this month", accent: C.blue },
-          { label: "Analyzed Today", value: "8", delta: "3 critical", accent: C.red },
-          { label: "Avg PAR Score", value: "14.2", delta: "↓ 2.1 vs last month", accent: C.green },
-          { label: "Reports Saved", value: "1,083", delta: "PDF + DOCX", accent: C.amber },
-        ].map((s, i) => (
-          <div key={i} className="stat-card" style={{ "--accent": s.accent }}>
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value">{s.value}</div>
-            <div className="stat-delta">{s.delta}</div>
-          </div>
-        ))}
-      </div>
 
       <div className="upload-card">
         <div className="section-header">

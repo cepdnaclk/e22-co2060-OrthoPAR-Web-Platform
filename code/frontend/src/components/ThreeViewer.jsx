@@ -1,6 +1,6 @@
 import React, { useState, Suspense, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Sphere, Text, Html, Center } from '@react-three/drei';
+import { OrbitControls, Sphere, Text, Html, Center, Line } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 // Renders an actual STL mesh dynamically fetched securely from the backend
@@ -50,6 +50,18 @@ function FallbackMesh({ message }) {
   );
 }
 
+// Per-mesh error boundary: stops a bad STL URL from crashing the whole viewer
+class MeshErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return <FallbackMesh message={`STL file unavailable — please re-upload`} />;
+    }
+    return this.props.children;
+  }
+}
+
 function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, scans, onBoundsLoad }) {
   const upperScanUrl = scans.find(s => s.file_type === "Upper Arch Segment")?.id;
   const lowerScanUrl = scans.find(s => s.file_type === "Lower Arch Segment")?.id;
@@ -57,29 +69,33 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
   return (
     <group>
       {showUpper && upperScanUrl ? (
-        <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
-          <STLMesh 
-            url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
-            position={[0, 0, 0]} 
-            color="#E8F4FD"
-            onAddLandmark={onAddLandmark}
-            onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
-          />
-        </Suspense>
+        <MeshErrorBoundary>
+          <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
+            <STLMesh 
+              url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
+              position={[0, 0, 0]} 
+              color="#E8F4FD"
+              onAddLandmark={onAddLandmark}
+              onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
+            />
+          </Suspense>
+        </MeshErrorBoundary>
       ) : showUpper && (
          <FallbackMesh message="No Upper Arch found" />
       )}
 
       {showLower && lowerScanUrl ? (
-        <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
-          <STLMesh 
-            url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
-            position={[0, 0, 0]} 
-            color="#F0F9FF"
-            onAddLandmark={onAddLandmark}
-            onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
-          />
-        </Suspense>
+        <MeshErrorBoundary>
+          <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
+            <STLMesh 
+              url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
+              position={[0, 0, 0]} 
+              color="#F0F9FF"
+              onAddLandmark={onAddLandmark}
+              onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
+            />
+          </Suspense>
+        </MeshErrorBoundary>
       ) : showLower && (
          <FallbackMesh message="No Lower Arch found" />
       )}
@@ -90,14 +106,19 @@ function JawModel({ showUpper, showLower, highlightLandmarks, onAddLandmark, sca
 
 
 
-export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [] }) {
+
+export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, scans = [], activeMeasureMetric, measurePoints = [], onAddMeasurePoint }) {
   const [landmarks, setLandmarks] = useState([]);
   const [stlBounds, setStlBounds] = useState({});
 
   const handlePointerDown = (e) => {
     e.stopPropagation();
     const { point } = e;
-    setLandmarks(prev => [...prev, point]);
+    if (activeMeasureMetric && onAddMeasurePoint) {
+      onAddMeasurePoint(point);
+    } else {
+      alert("Please select a metric to measure from the scorecard first.");
+    }
   };
 
   const handleBoundsLoad = React.useCallback((fileType, box) => {
@@ -169,14 +190,32 @@ export default function ThreeViewer({ showUpper, showLower, highlightLandmarks, 
                         );
                     })}
 
-                    {/* Render manually interacted frontend landmarks */}
-                    {landmarks.map((pos, idx) => (
-                        <Sphere key={idx} position={pos} args={[1.5, 16, 16]}>
-                            <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
-                        </Sphere>
-                    ))}
                 </group>
             </Center>
+
+            {/* Render manually interacted frontend landmarks in WORLD space */}
+            {landmarks.map((pos, idx) => (
+                <Sphere key={idx} position={pos} args={[0.15, 16, 16]}>
+                    <meshStandardMaterial color="#EF4444" roughness={0.2} metalness={0.1} />
+                </Sphere>
+            ))}
+
+            {/* Render active measurement points in WORLD space */}
+            {measurePoints.map((pos, idx) => (
+                <Sphere key={`measure-${idx}`} position={pos} args={[0.15, 16, 16]}>
+                    <meshStandardMaterial color="#3B82F6" roughness={0.2} emissive="#3B82F6" emissiveIntensity={0.5} />
+                </Sphere>
+            ))}
+            {measurePoints.length === 2 && (
+                <Line
+                    points={[
+                        [measurePoints[0].x, measurePoints[0].y, measurePoints[0].z],
+                        [measurePoints[1].x, measurePoints[1].y, measurePoints[1].z]
+                    ]}
+                    color="#3B82F6"
+                    lineWidth={3}
+                />
+            )}
 
             <OrbitControls 
                 enableDamping 

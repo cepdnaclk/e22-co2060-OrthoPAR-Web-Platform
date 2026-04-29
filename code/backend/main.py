@@ -156,9 +156,28 @@ async def upload_model(
         print(f"Unexpected error during upload: {e}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred during upload.")
 
-# ---------------- PROTECTED ROUTE EXAMPLE ----------------
+# ---------------- USER SETTINGS ----------------
 @app.get("/users/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+@app.put("/users/me", response_model=schemas.User)
+def update_user_me(user_update: schemas.UserUpdate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if user_update.full_name is not None: current_user.full_name = user_update.full_name
+    if user_update.hospital_name is not None: current_user.hospital_name = user_update.hospital_name
+    if user_update.slmc_registration_number is not None: current_user.slmc_registration_number = user_update.slmc_registration_number
+    if user_update.specialty is not None: current_user.specialty = user_update.specialty
+    if user_update.phone_number is not None: current_user.phone_number = user_update.phone_number
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@app.put("/users/me/password")
+def update_user_password(pass_update: schemas.UserPasswordUpdate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if not auth.verify_password(pass_update.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    current_user.hashed_password = auth.hash_password(pass_update.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
 
 # TODO: Migrate seed_uploads.py dev utility once E2E verification passes

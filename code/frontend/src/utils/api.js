@@ -71,6 +71,22 @@ export async function getMe() {
   return request("/users/me");
 }
 
+export async function updateProfile(data) {
+  return request("/users/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePassword(current_password, new_password) {
+  return request("/users/me/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ current_password, new_password }),
+  });
+}
+
 // ── Patients ──────────────────────────────────────────────────────────────────
 
 export async function getPatients() {

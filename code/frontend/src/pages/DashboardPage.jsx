@@ -90,20 +90,6 @@ function Dashboard({ onAnalyze }) {
 
   return (
     <div>
-      <div className="stat-grid">
-        {[
-          { label: "Total Patients", value: "247", delta: "+12 this month", accent: C.blue },
-          { label: "Analyzed Today", value: "8", delta: "3 critical", accent: C.red },
-          { label: "Avg PAR Score", value: "14.2", delta: "↓ 2.1 vs last month", accent: C.green },
-          { label: "Reports Saved", value: "1,083", delta: "PDF + DOCX", accent: C.amber },
-        ].map((s, i) => (
-          <div key={i} className="stat-card" style={{ "--accent": s.accent }}>
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value">{s.value}</div>
-            <div className="stat-delta">{s.delta}</div>
-          </div>
-        ))}
-      </div>
 
       <div className="upload-card">
         <div className="section-header">

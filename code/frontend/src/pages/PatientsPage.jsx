@@ -280,7 +280,7 @@ function PatientsPage({ onAnalyze, onViewReport }) {
                       onClick={() => handleToggleExpand(p.id)}
                     >
                       {/* Expand chevron */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: C.textMuted, transition: "transform 0.2s", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: isExpanded ? C.blue : "#94A3B8", fontSize: 28, lineHeight: 1, paddingBottom: 4, transition: "transform 0.2s", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>
                         ›
                       </div>
                       <div style={{ fontWeight: 600, color: C.text }}>{p.name}</div>

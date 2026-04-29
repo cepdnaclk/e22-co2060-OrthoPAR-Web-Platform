@@ -26,6 +26,17 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    hospital_name: Optional[str] = None
+    slmc_registration_number: Optional[str] = None
+    specialty: Optional[str] = None
+    phone_number: Optional[str] = None
+
+class UserPasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
+
 class ModelResponse(BaseModel):
     model_id: UUID
     file_name: str

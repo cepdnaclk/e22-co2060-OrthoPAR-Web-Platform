@@ -5,7 +5,7 @@ export const PAR_WEIGHTS = {
   midlineShift: { label: "Midline Shift", unit: "mm", weight: 4 },
   upperCrowding: { label: "Upper Crowding", unit: "mm", weight: 1 },
   lowerCrowding: { label: "Lower Crowding", unit: "mm", weight: 1 },
-  buccalOcclusion: { label: "Buccal Occlusion", unit: "score", weight: 3 },
+  buccalOcclusion: { label: "Buccal Occlusion", unit: "score", weight: 1 },
 };
 
 export function calcPARPoints(metric, value) {

@@ -287,6 +287,36 @@ def calculate_score_for_visit(
     response.missing_segments = missing_segments
     return response
 
+@router.post("/scores/manual/{visit_id}", response_model=schemas.ParScoreResponse)
+def save_manual_score(
+    visit_id: UUID,
+    score_data: schemas.ParScoreBase,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
+
+    # Create new score record marked as 'manual'
+    db_score = models.ParScore(
+        visit_id=visit_id,
+        model_version="manual",
+        **score_data.model_dump()
+    )
+    db.add(db_score)
+    
+    # Sync with patient global cache
+    visit.patient.par_score = score_data.final_score
+    
+    db.commit()
+    db.refresh(db_score)
+    return db_score
+
 # ---------------- PATIENT TREND REPORT ----------------
 
 @router.get("/patients/{patient_id}/report")

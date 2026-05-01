@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getPatientReport } from "../utils/api";
-import { C } from "../utils/constants.js";
+import { C, getScoreStatus, STATUS_COLORS } from "../utils/constants.js";
 import "./ReportsPage.css";
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -8,27 +8,28 @@ import "./ReportsPage.css";
 function ScoreBadge({ score }) {
   if (score === null || score === undefined)
     return <span style={{ color: C.textMuted }}>—</span>;
-  const color =
-    score < 15 ? "#10b981" : score < 30 ? "#f59e0b" : "#ef4444";
-  const label = score < 15 ? "Good" : score < 30 ? "Moderate" : "Severe";
+  
+  const status = getScoreStatus(score);
+  const cfg = STATUS_COLORS[status] || STATUS_COLORS.Normal;
+
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        background: `${color}18`,
-        color,
+        background: `${cfg.dot}18`,
+        color: cfg.text,
         fontWeight: 700,
         fontSize: 13,
         padding: "4px 10px",
         borderRadius: 20,
-        border: `1px solid ${color}40`,
+        border: `1px solid ${cfg.dot}40`,
       }}
     >
       {score} pts
       <span style={{ fontWeight: 400, fontSize: 11, opacity: 0.85 }}>
-        {label}
+        {status}
       </span>
     </span>
   );
@@ -114,8 +115,8 @@ function TrendChart({ entries }) {
     <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80, marginTop: 4 }}>
       {entries.map((e, i) => {
         const pct = max > 0 ? (e.par_score / max) * 100 : 0;
-        const color =
-          e.par_score < 15 ? "#10b981" : e.par_score < 30 ? "#f59e0b" : "#ef4444";
+        const status = getScoreStatus(e.par_score);
+        const color = STATUS_COLORS[status]?.dot || C.textMuted;
         return (
           <div
             key={e.visit_id}
@@ -411,9 +412,9 @@ function ReportsPage({ patientId, onBack }) {
             <TrendChart entries={trend.entries} />
             <div style={{ display: "flex", gap: 16, marginTop: 14, justifyContent: "center", flexWrap: "wrap" }}>
               {[
-                { color: "#10b981", label: "Good (< 15)" },
-                { color: "#f59e0b", label: "Moderate (15–29)" },
-                { color: "#ef4444", label: "Severe (≥ 30)" },
+                { color: STATUS_COLORS.Normal.dot, label: "Normal (< 11)" },
+                { color: STATUS_COLORS.Moderate.dot, label: "Moderate (11–21)" },
+                { color: STATUS_COLORS.Critical.dot, label: "Critical (≥ 22)" },
               ].map(({ color, label }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textSub }}>
                   <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />

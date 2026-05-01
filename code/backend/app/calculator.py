@@ -49,6 +49,7 @@ def calculate_par_score(upper_points: list, lower_points: list, buccal_points: l
     buccal_vertical_score = _calc_buccal_vertical(upper_map, lower_map, "R") + _calc_buccal_vertical(upper_map, lower_map, "L")
 
     # 3. Final Weighted Score
+    # Weights: Overjet (6), Overbite (2), Centreline (4), others (1)
     final_score = (
         upper_anterior_score +
         lower_anterior_score +
@@ -66,9 +67,14 @@ def calculate_par_score(upper_points: list, lower_points: list, buccal_points: l
         "buccal_occlusion_antero_posterior_score": buccal_ap_score,
         "buccal_occlusion_transverse_score": buccal_transverse_score,
         "buccal_occlusion_vertical_score": buccal_vertical_score,
+        "buccal_occlusion_score": buccal_ap_score + buccal_transverse_score + buccal_vertical_score,
         "overjet_score": overjet_score * 6,
         "overbite_score": overbite_score * 2,
         "centreline_score": centreline_score * 4,
+        # Explicit unweighted points for frontend mapping
+        "overjet_points": overjet_score,
+        "overbite_points": overbite_score,
+        "centreline_points": centreline_score,
         "final_score": final_score
     }
 

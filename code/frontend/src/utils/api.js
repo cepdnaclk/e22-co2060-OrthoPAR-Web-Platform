@@ -156,6 +156,14 @@ export async function calculateScore(visitId) {
   return request(`/api/analysis/landmarks/calculate/${visitId}`, { method: "POST" });
 }
 
+export async function saveManualScore(visitId, scoreData) {
+  return request(`/api/analysis/scores/manual/${visitId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(scoreData),
+  });
+}
+
 export async function getReports() {
   return request("/api/analysis/reports");
 }

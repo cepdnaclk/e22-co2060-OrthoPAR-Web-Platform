@@ -83,6 +83,10 @@ class ParScoreBase(BaseModel):
     overjet_score: int
     overbite_score: int
     centreline_score: int
+    overjet_points: Optional[int] = None
+    overbite_points: Optional[int] = None
+    centreline_points: Optional[int] = None
+    buccal_occlusion_score: Optional[int] = None
     final_score: int
 
 class ParScoreCreate(ParScoreBase):

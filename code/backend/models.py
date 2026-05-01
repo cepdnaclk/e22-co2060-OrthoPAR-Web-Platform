@@ -107,6 +107,11 @@ class ParScore(Base):
     overjet_score = Column(Integer)
     overbite_score = Column(Integer)
     centreline_score = Column(Integer)
+    # New breakdown fields
+    overjet_points = Column(Integer, nullable=True)
+    overbite_points = Column(Integer, nullable=True)
+    centreline_points = Column(Integer, nullable=True)
+    buccal_occlusion_score = Column(Integer, nullable=True)
     final_score = Column(Integer)
     calculated_at = Column(DateTime, default=datetime.utcnow)
     model_version = Column(String, nullable=True)

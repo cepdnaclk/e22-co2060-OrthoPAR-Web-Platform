@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { PAR_WEIGHTS, C, STATUS_COLORS, calcPARPoints, getScoreStatus, METRIC_STL_MAP, MEASURE_STEPS } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
 import ThreeViewer from "../components/ThreeViewer.jsx";
-import { getPatient, extractLandmarks, calculateScore } from "../utils/api.js";
+import { getPatient, extractLandmarks, calculateScore, saveManualScore } from "../utils/api.js";
 
 function AnalysisStudio({ patientId }) {
   const [showUpper, setShowUpper] = useState(true);
@@ -159,26 +159,36 @@ function AnalysisStudio({ patientId }) {
   const activeVisit = visits[selectedVisitIdx] ?? null;
   const activeScans = activeVisit?.scans || [];
 
-  // Map PAR_WEIGHTS frontend keys → backend ParScoreResponse field names
-  // PAR_WEIGHTS keys: overjet, overbite, midlineShift, upperCrowding, lowerCrowding, buccalOcclusion
+  // Map PAR_WEIGHTS frontend keys -> backend ParScoreResponse field names
   const dbKeyMap = {
-    overjet: "overjet_score",
-    overbite: "overbite_score",
-    midlineShift: "centreline_score",
+    overjet: "overjet_points",
+    overbite: "overbite_points",
+    midlineShift: "centreline_points",
     upperCrowding: "upper_anterior_score",
     lowerCrowding: "lower_anterior_score",
-    buccalOcclusion: "buccal_occlusion_antero_posterior_score",
+    buccalOcclusion: "buccal_occlusion_score",
   };
 
-  const effectiveValues = Object.fromEntries(
-    Object.keys(PAR_WEIGHTS).map(k => {
-      const aiVal = aiValues[dbKeyMap[k]] || 0;
-      return [k, overrides[k] !== undefined ? overrides[k] : aiVal];
-    })
-  );
+  const getAiPoints = (key) => {
+    if (key === "buccalOcclusion") {
+      return (aiValues.buccal_occlusion_antero_posterior_score || 0) + 
+             (aiValues.buccal_occlusion_transverse_score || 0) + 
+             (aiValues.buccal_occlusion_vertical_score || 0);
+    }
+    return aiValues[dbKeyMap[key]] || 0;
+  };
 
   const pointsMap = Object.fromEntries(
-    Object.keys(PAR_WEIGHTS).map(k => [k, calcPARPoints(k, effectiveValues[k])])
+    Object.keys(PAR_WEIGHTS).map(k => {
+      const manualVal = overrides[k];
+      const isOverridden = manualVal !== undefined && manualVal !== "";
+      const weight = PAR_WEIGHTS[k].weight || 1;
+      
+      if (isOverridden) {
+        return [k, calcPARPoints(k, manualVal) * weight];
+      }
+      return [k, getAiPoints(k) * weight];
+    })
   );
 
   const totalScore = Object.values(pointsMap).reduce((a, b) => a + b, 0);
@@ -221,7 +231,44 @@ function AnalysisStudio({ patientId }) {
     }
   };
 
-  const handleSave = () => { setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2000); };
+  const handleSave = async () => {
+    if (!activeVisit) return;
+    setLoading(true);
+    setLoadingStep("Saving manual adjustments to record...");
+    
+    try {
+      // Build the final clinical payload
+      const payload = {
+        upper_anterior_score: pointsMap.upperCrowding,
+        lower_anterior_score: pointsMap.lowerCrowding,
+        overjet_score: pointsMap.overjet,
+        overbite_score: pointsMap.overbite,
+        centreline_score: pointsMap.midlineShift,
+        buccal_occlusion_score: pointsMap.buccalOcclusion,
+        
+        // Raw index points for backend audit/breakdown
+        overjet_points: overrides.overjet !== undefined ? calcPARPoints("overjet", overrides.overjet) : aiValues.overjet_points,
+        overbite_points: overrides.overbite !== undefined ? calcPARPoints("overbite", overrides.overbite) : aiValues.overbite_points,
+        centreline_points: overrides.midlineShift !== undefined ? calcPARPoints("midlineShift", overrides.midlineShift) : aiValues.centreline_points,
+        
+        // Buccal sub-components
+        buccal_occlusion_antero_posterior_score: aiValues.buccal_occlusion_antero_posterior_score,
+        buccal_occlusion_transverse_score: aiValues.buccal_occlusion_transverse_score,
+        buccal_occlusion_vertical_score: aiValues.buccal_occlusion_vertical_score,
+        
+        final_score: totalScore
+      };
+
+      await saveManualScore(activeVisit.id, payload);
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 3000);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save manual adjustments: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Derive per-step guidance: which jaw to show and what instruction to display
   const measureSteps = activeMeasureMetric ? MEASURE_STEPS[activeMeasureMetric] : null;
@@ -355,7 +402,7 @@ function AnalysisStudio({ patientId }) {
             </thead>
             <tbody>
               {Object.entries(PAR_WEIGHTS).map(([key, meta]) => {
-                const aiVal = aiValues[dbKeyMap[key]] || 0;
+                const aiVal = getAiPoints(key);
                 const manualVal = overrides[key] !== undefined ? overrides[key] : "";
                 const isOverridden = manualVal !== "" && Number(manualVal) !== aiVal;
                 const finalVal = isOverridden ? Number(manualVal) : aiVal;

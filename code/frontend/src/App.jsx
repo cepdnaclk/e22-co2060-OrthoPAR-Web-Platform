@@ -114,30 +114,31 @@ export default function App() {
             ))}
           </div>
 
-          <div style={{ marginTop: "auto" }}>
-            <div className="nav-section" style={{ marginBottom: 0 }}>
-              <button className="nav-item" style={{ marginBottom: 4 }} onClick={() => { setActiveNav("settings"); setScreen("settings"); }}>
-                {Icons.settings}
-                Settings
-              </button>
-              <button
-                className="nav-item"
-                style={{ marginBottom: 0, color: C.red }}
-                onClick={logout}
-                id="logout-btn"
-              >
-                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Sign Out
-              </button>
-            </div>
+          <div style={{ marginTop: "auto", padding: "0 12px" }}>
+            <button className={`nav-item${activeNav === "settings" ? " active" : ""}`} style={{ marginBottom: 0 }} onClick={() => { setActiveNav("settings"); setScreen("settings"); }}>
+              {Icons.settings}
+              Settings
+            </button>
           </div>
 
-          <div className="sidebar-footer">
-            <div className="avatar">{initials}</div>
-            <div>
-              <div className="avatar-name">{displayName}</div>
-              <div className="avatar-role">{user.email}</div>
+          <div className="sidebar-footer" style={{ flexDirection: "column", alignItems: "stretch", gap: 12, padding: "16px 12px", marginTop: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px" }}>
+              <div className="avatar">{initials}</div>
+              <div>
+                <div className="avatar-name">{displayName}</div>
+                <div className="avatar-role">{user.email}</div>
+              </div>
             </div>
+            
+            <button
+              className="nav-item"
+              style={{ margin: 0, color: C.red, opacity: 0.8 }}
+              onClick={logout}
+              id="logout-btn"
+            >
+              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </button>
           </div>
         </aside>
 

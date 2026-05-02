@@ -125,9 +125,9 @@ function Dashboard({ onAnalyze }) {
           <div className="section-title">New Scan Analysis</div>
         </div>
 
-        {/* Step 1: Patient Selection Box */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-          <div className="dashboard-section-wrap">
+        {/* Step 1 & 2: Selection (Patient Left, Visit Far Right) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "20px", marginBottom: "24px" }}>
+          <div className="dashboard-section-wrap" style={{ marginBottom: 0, width: "100%", maxWidth: "340px" }}>
             <label className="dashboard-label">
               1. Select Patient
             </label>
@@ -136,6 +136,7 @@ function Dashboard({ onAnalyze }) {
               value={selectedPatientId}
               onChange={e => setSelectedPatientId(e.target.value)}
               disabled={uploading}
+              style={{ paddingLeft: "12px" }}
             >
               <option value="">-- Choose a patient --</option>
               {patients.map(p => (
@@ -144,24 +145,33 @@ function Dashboard({ onAnalyze }) {
             </select>
           </div>
 
-          <div className="dashboard-section-wrap">
-            <label className="dashboard-label">
-              2. Target Visit
-            </label>
-            <select 
-              className="search-input dashboard-select" 
-              value={selectedVisitId}
-              onChange={e => setSelectedVisitId(e.target.value)}
-              disabled={uploading || !selectedPatientId}
-              style={{ borderColor: selectedVisitId === "new" ? C.blue : "inherit" }}
-            >
-              {patientVisits.map((v, i) => (
-                <option key={v.id} value={v.id}>
-                  Visit {i + 1}: {new Date(v.visit_date).toLocaleDateString()} ({v.status})
-                </option>
-              ))}
-              <option value="new" style={{ fontWeight: "bold", color: C.blue }}>+ Record as New Progress Visit</option>
-            </select>
+          <div className="dashboard-section-wrap" style={{ marginBottom: 0, width: "100%", display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ width: "100%", maxWidth: "500px" }}>
+              <label className="dashboard-label">
+                2. Target Visit
+              </label>
+              <select 
+                className="search-input dashboard-select" 
+                value={selectedVisitId}
+                onChange={e => setSelectedVisitId(e.target.value)}
+                disabled={uploading || !selectedPatientId}
+                style={{ 
+                  borderColor: selectedVisitId === "new" ? C.blue : "inherit",
+                  paddingLeft: "12px"
+                }}
+              >
+                {patientVisits.length > 0 ? (
+                  patientVisits.map((v, i) => (
+                    <option key={v.id} value={v.id}>
+                      Visit {i + 1}: {new Date(v.visit_date).toLocaleDateString()} ({v.status})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No existing visits</option>
+                )}
+                <option value="new" style={{ fontWeight: "bold", color: C.blue }}>+ Record as New Progress Visit</option>
+              </select>
+            </div>
           </div>
         </div>
 

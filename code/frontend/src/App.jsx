@@ -36,6 +36,7 @@ export default function App() {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [activePatientId, setActivePatientId] = useState(null);
   const [reportPatientId, setReportPatientId] = useState(null);
+  const [reportViewMode, setReportViewMode] = useState("trend");
 
   // While checking stored token, show nothing (avoid flash)
   if (loading) {
@@ -70,8 +71,9 @@ export default function App() {
     setActiveNav("studio");
   };
 
-  const handleViewReport = (patientId) => {
+  const handleViewReport = (patientId, mode = "trend") => {
     setReportPatientId(patientId);
+    setReportViewMode(mode);
     setScreen("reports");
     setActiveNav("reports");
   };
@@ -170,9 +172,10 @@ export default function App() {
           )}
 
           {screen === "patients" && <PatientsPage onAnalyze={handleAnalyze} onViewReport={handleViewReport} />}
-          {screen === "reports" && (
+           {screen === "reports" && (
             <ReportsPage
               patientId={reportPatientId}
+              viewMode={reportViewMode}
               onBack={() => { setScreen("patients"); setActiveNav("patients"); }}
             />
           )}

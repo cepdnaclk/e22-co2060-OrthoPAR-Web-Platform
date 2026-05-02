@@ -127,7 +127,7 @@ function VisitHistoryPanel({ patient, onAnalyzeVisit, onAddVisit, onViewReport }
           Total of {visits.length} visit{visits.length !== 1 ? 's' : ''} recorded.
         </div>
         <button
-          onClick={() => onViewReport && onViewReport(patient.id)}
+          onClick={() => onViewReport && onViewReport(patient.id, "trend")}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -344,7 +344,7 @@ function PatientsPage({ onAnalyze, onViewReport }) {
                       <div onClick={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <button
                           title="View Patient Report"
-                          onClick={() => onViewReport && onViewReport(p.id)}
+                          onClick={() => onViewReport && onViewReport(p.id, "single")}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",

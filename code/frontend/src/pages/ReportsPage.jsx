@@ -149,7 +149,7 @@ function TrendChart({ entries }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function ReportsPage({ patientId, onBack }) {
+function ReportsPage({ patientId, viewMode, onBack }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -164,10 +164,21 @@ function ReportsPage({ patientId, onBack }) {
     setLoading(true);
     setError(null);
     getPatientReport(patientId)
-      .then(setReport)
+      .then(data => {
+        setReport(data);
+        // Auto-expand latest visit if in single view mode
+        if (viewMode === "single" && data.visits && data.visits.length > 0) {
+          const scoredVisits = data.visits.filter(v => v.par_score !== null);
+          if (scoredVisits.length > 0) {
+            setExpandedVisit(scoredVisits[scoredVisits.length - 1].id);
+          } else {
+            setExpandedVisit(data.visits[data.visits.length - 1].id);
+          }
+        }
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [patientId]);
+  }, [patientId, viewMode]);
 
   // ── Loading ──
   if (loading) {

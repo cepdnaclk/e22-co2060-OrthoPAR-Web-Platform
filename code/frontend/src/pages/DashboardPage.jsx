@@ -64,7 +64,7 @@ function Dashboard({ onAnalyze }) {
       
       let targetVisitId = null;
 
-      // Fix 1: Explicitly handle "new" visit creation
+      // Fix 1: Handle explicit visit selection or new creation
       if (selectedVisitId === "new") {
           setUploadProgress("Creating new progress visit record...");
           const newVisit = await createVisit(
@@ -73,8 +73,13 @@ function Dashboard({ onAnalyze }) {
             "In-Progress"
           );
           targetVisitId = newVisit.id;
-      } else {
+      } else if (selectedVisitId) {
           targetVisitId = selectedVisitId;
+      } else {
+        // BACKWARD COMPATIBILITY: Auto-generate a Visit if a legacy Patient lacks one
+        setUploadProgress("Legacy Patient detected. Auto-generating Initial Visit...");
+        const newVisit = await createVisit(selectedPatientId, "Initial Appointment", "Pre-Treatment");
+        targetVisitId = newVisit.id;
       }
       
       if (!targetVisitId) {

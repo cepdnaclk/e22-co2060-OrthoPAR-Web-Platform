@@ -15,6 +15,7 @@ function Dashboard({ onAnalyze }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [uploadMode, setUploadMode] = useState("new"); // "new" or "overwrite"
 
   // --- Data Fetching ---
   // Load patients immediately on mount to populate the dropdown
@@ -35,47 +36,53 @@ function Dashboard({ onAnalyze }) {
   const handleUploadAndAnalyze = async () => {
     if (!selectedPatientId) return setUploadError("Please select a patient first.");
     if (!scans.upper || !scans.lower || !scans.buccal) return setUploadError("Please select all 3 scans.");
-    
+
     setUploading(true);
     setUploadError("");
-    
+
     try {
       setUploadProgress("Aligning medical visit routing context...");
       const fullPatient = await getPatient(selectedPatientId);
-      
+
       let targetVisitId = null;
       if (fullPatient.visits && fullPatient.visits.length > 0) {
-          // Always map uploads to the patient's newest visit
-          targetVisitId = fullPatient.visits[fullPatient.visits.length - 1].id;
+          if (uploadMode === "new") {
+              setUploadProgress("Creating new visit...");
+              const visitCount = fullPatient.visits.length + 1;
+              const newVisit = await createVisit(selectedPatientId, `Visit ${visitCount}`, fullPatient.treatment_status || "Active");
+              targetVisitId = newVisit.id;
+          } else {
+              targetVisitId = fullPatient.visits[fullPatient.visits.length - 1].id;
+          }
       } else {
-          // BACKWARD COMPATIBILITY: Auto-generate a Visit if an older Patient lacks one!
-          setUploadProgress("Legacy Patient detected. Auto-generating Initial Visit array...");
-          const newVisit = await createVisit(selectedPatientId, "Auto-generated Initial Appointment", "Pre-Treatment");
-          targetVisitId = newVisit.id;
+        // BACKWARD COMPATIBILITY: Auto-generate a Visit if an older Patient lacks one!
+        setUploadProgress("Legacy Patient detected. Auto-generating Initial Visit array...");
+        const newVisit = await createVisit(selectedPatientId, "Auto-generated Initial Appointment", "Pre-Treatment");
+        targetVisitId = newVisit.id;
       }
-      
+
       if (!targetVisitId) {
-          throw new Error("Unable to establish a secure Visit context string.");
+        throw new Error("Unable to establish a secure Visit context string.");
       }
 
       // Sequentially upload each model segment to the selected visit bucket
       setUploadProgress("Uploading Upper Arch...");
       await uploadScan(targetVisitId, "Upper Arch Segment", scans.upper);
-      
+
       setUploadProgress("Uploading Lower Arch...");
       await uploadScan(targetVisitId, "Lower Arch Segment", scans.lower);
-      
+
       setUploadProgress("Uploading Buccal Segment...");
       await uploadScan(targetVisitId, "Buccal Segment", scans.buccal);
-      
+
       setUploadProgress("Success! Starting Analysis...");
-      
+
       // Delay briefly to show success, then jump straight into Analysis Studio
       setTimeout(() => {
         setUploading(false);
-        onAnalyze(selectedPatientId); 
+        onAnalyze(selectedPatientId);
       }, 800);
-      
+
     } catch (err) {
       setUploadError(err.message);
       setUploading(false);
@@ -84,7 +91,7 @@ function Dashboard({ onAnalyze }) {
 
   // Filter logic for recent activity table
   const filtered = patients.filter(p =>
-    p.id.toLowerCase().includes(search.toLowerCase()) || 
+    p.id.toLowerCase().includes(search.toLowerCase()) ||
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -95,14 +102,14 @@ function Dashboard({ onAnalyze }) {
         <div className="section-header">
           <div className="section-title">New Scan Analysis</div>
         </div>
-        
+
         {/* Step 1: Patient Selection Box */}
         <div className="dashboard-section-wrap">
           <label className="dashboard-label">
             1. Select Patient
           </label>
-          <select 
-            className="search-input dashboard-select" 
+          <select
+            className="search-input dashboard-select"
             value={selectedPatientId}
             onChange={e => setSelectedPatientId(e.target.value)}
             disabled={uploading}
@@ -112,6 +119,32 @@ function Dashboard({ onAnalyze }) {
               <option key={p.id} value={p.id}>{p.name} (ID: {p.id.split("-")[0]})</option>
             ))}
           </select>
+          {selectedPatientId && (
+            <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", color: C.text }}>
+                <input 
+                  type="radio" 
+                  name="uploadMode" 
+                  value="new" 
+                  checked={uploadMode === "new"} 
+                  onChange={() => setUploadMode("new")}
+                  disabled={uploading}
+                />
+                Create New Visit
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", color: C.text }}>
+                <input 
+                  type="radio" 
+                  name="uploadMode" 
+                  value="overwrite" 
+                  checked={uploadMode === "overwrite"} 
+                  onChange={() => setUploadMode("overwrite")}
+                  disabled={uploading}
+                />
+                Update Latest Visit
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Step 2: Extracting STL Files via File Inputs */}
@@ -119,7 +152,7 @@ function Dashboard({ onAnalyze }) {
           <label className="dashboard-label">
             2. Upload 3D Intraoral Scans
           </label>
-          
+
           <div className="scan-picker-list">
             {[
               { id: 'upper', label: "Upper Arch" },
@@ -129,12 +162,12 @@ function Dashboard({ onAnalyze }) {
               <div key={scan.id} className="scan-picker-item">
                 <label className={`btn-secondary scan-picker-btn ${uploading ? "disabled" : ""}`}>
                   Select File
-                  <input 
-                    type="file" 
-                    accept=".stl,.obj,.ply" 
+                  <input
+                    type="file"
+                    accept=".stl,.obj,.ply"
                     style={{ display: "none" }}
                     disabled={uploading}
-                    onChange={(e) => { if(e.target.files[0]) handleFileChange(scan.id, e.target.files[0]) }}
+                    onChange={(e) => { if (e.target.files[0]) handleFileChange(scan.id, e.target.files[0]) }}
                   />
                 </label>
                 <div className={`scan-picker-status ${scans[scan.id] ? "selected" : ""}`}>
@@ -159,8 +192,8 @@ function Dashboard({ onAnalyze }) {
           </div>
         )}
 
-        <button 
-          className="analyze-btn dashboard-analyze-btn" 
+        <button
+          className="analyze-btn dashboard-analyze-btn"
           disabled={!selectedPatientId || !scans.upper || !scans.lower || !scans.buccal || uploading}
           onClick={handleUploadAndAnalyze}
         >
@@ -192,7 +225,7 @@ function Dashboard({ onAnalyze }) {
             text: isCompleted ? C.green : isPending ? C.amber : C.blue,
             dot: isCompleted ? C.green : isPending ? C.amber : C.blue
           };
-          
+
           return (
             <div key={p.id} className="table-row" onClick={onAnalyze}>
               <div className="patient-id">{p.id}</div>

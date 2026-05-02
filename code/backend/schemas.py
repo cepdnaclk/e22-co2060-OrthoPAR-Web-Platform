@@ -117,6 +117,7 @@ class PatientCreate(PatientBase):
 class VisitBase(BaseModel):
     notes: Optional[str] = None
     status: str = "Pre-Treatment"
+    visit_date: Optional[datetime] = None
 
 class VisitCreate(VisitBase):
     patient_id: UUID

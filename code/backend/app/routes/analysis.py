@@ -72,7 +72,7 @@ def create_visit(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found or unauthorized")
 
-    db_visit = models.Visit(**visit.model_dump())
+    db_visit = models.Visit(**visit.model_dump(exclude_unset=True))
     db.add(db_visit)
     db.commit()
     db.refresh(db_visit)

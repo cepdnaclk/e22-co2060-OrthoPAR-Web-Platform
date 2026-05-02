@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PAR_WEIGHTS, C, STATUS_COLORS, calcPARPoints, getScoreStatus } from "../utils/constants.js";
+import { PAR_WEIGHTS, C, STATUS_COLORS, calcPARPoints, getScoreStatus, METRIC_STL_MAP, MEASURE_STEPS } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
 import ThreeViewer from "../components/ThreeViewer.jsx";
 import { getPatient, extractLandmarks, calculateScore } from "../utils/api.js";
@@ -7,6 +7,7 @@ import { getPatient, extractLandmarks, calculateScore } from "../utils/api.js";
 function AnalysisStudio({ patientId }) {
   const [showUpper, setShowUpper] = useState(true);
   const [showLower, setShowLower] = useState(true);
+  const [showBuccal, setShowBuccal] = useState(true);
   const [highlightLandmarks, setHighlightLandmarks] = useState(false);
   const [overrides, setOverrides] = useState({});
   const [savedMsg, setSavedMsg] = useState(false);
@@ -222,6 +223,16 @@ function AnalysisStudio({ patientId }) {
 
   const handleSave = () => { setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2000); };
 
+  // Derive per-step guidance: which jaw to show and what instruction to display
+  const measureSteps = activeMeasureMetric ? MEASURE_STEPS[activeMeasureMetric] : null;
+  const currentStep  = measureSteps ? measureSteps[measurePoints.length] : null;
+
+  // Buttons reflect the step-level STL when measuring, otherwise manual toggles
+  const stepVis   = currentStep?.stl || (activeMeasureMetric ? METRIC_STL_MAP[activeMeasureMetric] : null);
+  const btnUpper  = stepVis ? stepVis.upper  : showUpper;
+  const btnLower  = stepVis ? stepVis.lower  : showLower;
+  const btnBuccal = stepVis ? stepVis.buccal : showBuccal;
+
   const scoreBarColor =
     status === "Critical" ? "#EF4444" :
     status === "Moderate" ? "#F59E0B" : "#10B981";
@@ -250,11 +261,14 @@ function AnalysisStudio({ patientId }) {
                 ))}
               </select>
             )}
-            <button className={`viewer-btn${showUpper ? " active" : ""}`} onClick={() => setShowUpper(v => !v)}>
+            <button className={`viewer-btn${btnUpper ? " active" : ""}`} onClick={() => setShowUpper(v => !v)}>
               {Icons.eye} Upper Jaw
             </button>
-            <button className={`viewer-btn${showLower ? " active" : ""}`} onClick={() => setShowLower(v => !v)}>
+            <button className={`viewer-btn${btnLower ? " active" : ""}`} onClick={() => setShowLower(v => !v)}>
               {Icons.eye} Lower Jaw
+            </button>
+            <button className={`viewer-btn${btnBuccal ? " active" : ""}`} onClick={() => setShowBuccal(v => !v)}>
+              {Icons.eye} Buccal
             </button>
             <button className={`viewer-btn${highlightLandmarks ? " active" : ""}`} onClick={() => setHighlightLandmarks(v => !v)}>
               {Icons.tooth} Landmarks
@@ -262,18 +276,18 @@ function AnalysisStudio({ patientId }) {
           </div>
         </div>
         <div className="viewer-canvas" style={{ position: "relative" }}>
-          {activeMeasureMetric && (
+          {activeMeasureMetric && currentStep && (
             <div style={{
               position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 10,
-              background: C.blue, color: "white", padding: "8px 16px", borderRadius: 20, 
-              fontSize: 14, fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              display: "flex", alignItems: "center", gap: 8
+              background: C.blue, color: "white", padding: "10px 18px", borderRadius: 20, 
+              fontSize: 13, fontWeight: 600, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              display: "flex", alignItems: "center", gap: 8, maxWidth: "80%", textAlign: "center"
             }}>
               {Icons.ruler}
-              Measuring {PAR_WEIGHTS[activeMeasureMetric]?.label}... Click point {measurePoints.length + 1} of 2
+              {currentStep.prompt}
               <button 
                 onClick={() => { setActiveMeasureMetric(null); setMeasurePoints([]); }}
-                style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", marginLeft: 8, padding: 4 }}
+                style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", marginLeft: 8, padding: 4, flexShrink: 0 }}
                 title="Cancel"
               >✕</button>
             </div>
@@ -281,6 +295,8 @@ function AnalysisStudio({ patientId }) {
           <ThreeViewer
             showUpper={showUpper}
             showLower={showLower}
+            showBuccal={showBuccal}
+            stepVisibility={stepVis || undefined}
             highlightLandmarks={highlightLandmarks}
             scans={activeScans}
             activeMeasureMetric={activeMeasureMetric}
@@ -364,18 +380,25 @@ function AnalysisStudio({ patientId }) {
                             step="0.1"
                             onChange={e => handleOverride(key, e.target.value)}
                           />
-                          <button
-                            onClick={() => startMeasurement(key)}
-                            style={{
-                              background: activeMeasureMetric === key ? C.blueLight : "transparent",
-                              color: activeMeasureMetric === key ? C.blue : C.textMuted,
-                              border: `1px solid ${activeMeasureMetric === key ? C.blue : C.border}`,
-                              borderRadius: 4, width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
-                            }}
-                            title={`Measure ${meta.label} on 3D Model`}
-                          >
-                            {Icons.ruler}
-                          </button>
+                          {MEASURE_STEPS[key] ? (
+                            <button
+                              onClick={() => startMeasurement(key)}
+                              style={{
+                                background: activeMeasureMetric === key ? C.blueLight : "transparent",
+                                color: activeMeasureMetric === key ? C.blue : C.textMuted,
+                                border: `1px solid ${activeMeasureMetric === key ? C.blue : C.border}`,
+                                borderRadius: 4, width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
+                              }}
+                              title={`Measure ${meta.label} on 3D Model`}
+                            >
+                              {Icons.ruler}
+                            </button>
+                          ) : (
+                            <span
+                              title="Composite score — enter 0–4 directly"
+                              style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", color: C.textMuted, fontSize: 11, cursor: "default", border: `1px dashed ${C.border}`, borderRadius: 4 }}
+                            >—</span>
+                          )}
                           {isOverridden && <span className="manual-badge">MANUAL</span>}
                         </div>
                       ) : (

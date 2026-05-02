@@ -44,6 +44,46 @@ export function calcPARPoints(metric, value) {
   }
 }
 
+// ─── Metric → STL Visibility Map ─────────────────────────────────────────────
+// Defines which jaw STL(s) must be visible when manually measuring each metric
+export const METRIC_STL_MAP = {
+  upperCrowding:   { upper: true,  lower: false, buccal: false },
+  lowerCrowding:   { upper: false, lower: true,  buccal: false },
+  overjet:         { upper: true,  lower: false, buccal: true  },
+  overbite:        { upper: true,  lower: true,  buccal: false },
+  midlineShift:    { upper: true,  lower: true,  buccal: false },
+  buccalOcclusion: { upper: true,  lower: true,  buccal: false },
+};
+
+// ─── Guided Measurement Steps ─────────────────────────────────────────────────
+// Each metric has an ordered list of clicks. Each step specifies:
+//   prompt  → instruction shown to the clinician for that specific click
+//   stl     → which jaw(s) to display for that specific click
+// null = metric cannot be measured with a 2-point click; enter score directly.
+export const MEASURE_STEPS = {
+  upperCrowding: [
+    { prompt: "Step 1/2 — Click a contact point on the Upper arch (e.g. R3M, R2D, R1M, L1M…)", stl: { upper: true, lower: false, buccal: false } },
+    { prompt: "Step 2/2 — Click its adjacent contact point on the Upper arch", stl: { upper: true, lower: false, buccal: false } },
+  ],
+  lowerCrowding: [
+    { prompt: "Step 1/2 — Click a contact point on the Lower arch (e.g. R3M, R2D, R1M, L1M…)", stl: { upper: false, lower: true, buccal: false } },
+    { prompt: "Step 2/2 — Click its adjacent contact point on the Lower arch", stl: { upper: false, lower: true, buccal: false } },
+  ],
+  overjet: [
+    { prompt: "Step 1/2 — Click the incisal tip of the Upper Right Central Incisor (R1Mid) on the Upper Jaw", stl: { upper: true, lower: false, buccal: false } },
+    { prompt: "Step 2/2 — Click the labial surface of the Lower Incisor (LCover) on the Buccal scan", stl: { upper: false, lower: false, buccal: true } },
+  ],
+  overbite: [
+    { prompt: "Step 1/2 — Click the incisal tip of the Upper Right Central Incisor (R1Mid) on the Upper Jaw", stl: { upper: true, lower: false, buccal: false } },
+    { prompt: "Step 2/2 — Click the incisal tip of the Lower Right Central Incisor (R1Mid) on the Lower Jaw", stl: { upper: false, lower: true, buccal: false } },
+  ],
+  midlineShift: [
+    { prompt: "Step 1/2 — Click the Upper dental midline point (between R1M and L1M) on the Upper Jaw", stl: { upper: true, lower: false, buccal: false } },
+    { prompt: "Step 2/2 — Click the Lower dental midline point (between R1M and L1M) on the Lower Jaw", stl: { upper: false, lower: true, buccal: false } },
+  ],
+  buccalOcclusion: null, // Composite score — enter 0–4 directly in the input field.
+};
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 export const MOCK_PATIENTS = [
   { id: "PT-2041", date: "2025-02-14", score: 28, status: "Critical" },

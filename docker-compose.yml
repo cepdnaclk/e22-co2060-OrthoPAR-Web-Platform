@@ -29,9 +29,10 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=120
     ports:
       - "8000:8000"
+    restart: always
     volumes:
-      - ./code/backend/models:/app/models  # Map ML model payload weights if they exist persistently outside
-      - uploads_data:/app/uploads           # Persist uploaded STL files across container rebuilds
+      - ./code/backend/ml_models:/app/ml_models
+      - uploads_data:/app/uploads
     depends_on:
       - db_postgres
     networks:

@@ -1,0 +1,238 @@
+/* Standard Medical Report Design System */
+:root {
+  --med-primary: #1e3a8a;    /* Deep medical blue */
+  --med-secondary: #3b82f6;  /* Soft blue */
+  --med-bg: #ffffff;
+  --med-border: #e2e8f0;
+  --med-text-main: #1f2937;
+  --med-text-sub: #64748b;
+  --med-success: #059669;
+  --med-warning: #d97706;
+  --med-danger: #dc2626;
+  --med-accent: #f8fafc;
+}
+
+.medical-report {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm;
+  margin: 0 auto;
+  background: var(--med-bg);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--med-text-main);
+  line-height: 1.5;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Print Specifics */
+@media print {
+  body { background: none; margin: 0; padding: 0; }
+  .medical-report { 
+    box-shadow: none; 
+    margin: 0; 
+    width: 100%;
+    padding: 10mm;
+  }
+  .no-print { display: none !important; }
+}
+
+/* Header Section */
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--med-primary);
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+
+.hospital-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hospital-logo {
+  width: 40px;
+  height: 40px;
+  background: var(--med-primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.hospital-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--med-primary);
+  letter-spacing: -0.02em;
+}
+
+.document-meta {
+  text-align: right;
+}
+
+.document-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--med-text-main);
+  margin: 0;
+}
+
+.document-ref {
+  font-size: 11px;
+  color: var(--med-text-sub);
+}
+
+/* Grid Layouts */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.info-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--med-primary);
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--med-border);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.data-label {
+  color: var(--med-text-sub);
+  font-weight: 500;
+}
+
+.data-value {
+  font-weight: 600;
+  color: var(--med-text-main);
+}
+
+/* PAR Score Dashboard */
+.score-dashboard {
+  background: var(--med-accent);
+  border: 1px solid var(--med-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.main-score {
+  text-align: center;
+}
+
+.score-value {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--med-primary);
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--med-text-sub);
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-great { background: #dcfce7; color: #166534; }
+.status-improved { background: #eff6ff; color: #1e40af; }
+.status-warning { background: #fef3c7; color: #92400e; }
+
+/* Metrics Table */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+
+.metrics-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--med-text-sub);
+  padding: 10px;
+  border-bottom: 2px solid var(--med-border);
+}
+
+.metrics-table td {
+  padding: 12px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--med-border);
+}
+
+.metric-points {
+  font-weight: 700;
+  color: var(--med-primary);
+}
+
+/* Footer / Signature */
+.report-footer {
+  margin-top: auto;
+  padding-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.signature-area {
+  width: 200px;
+  text-align: center;
+}
+
+.signature-line {
+  border-top: 1px solid var(--med-text-main);
+  margin-top: 50px;
+  padding-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qr-placeholder {
+  width: 80px;
+  height: 80px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--med-text-sub);
+}
+
+.disclaimer {
+  font-size: 9px;
+  color: var(--med-text-sub);
+  margin-top: 20px;
+  text-align: center;
+  font-style: italic;
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getPatientReport } from "../utils/api";
 import { C, getScoreStatus, STATUS_COLORS } from "../utils/constants.js";
+import MedicalReport from "./MedicalReport";
 import "./ReportsPage.css";
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -154,6 +155,11 @@ function ReportsPage({ patientId, viewMode, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedVisit, setExpandedVisit] = useState(null);
+  const reportRef = React.useRef();
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   useEffect(() => {
     if (!patientId) {
@@ -251,7 +257,8 @@ function ReportsPage({ patientId, viewMode, onBack }) {
   const age = calcAge(patient.date_of_birth);
 
   return (
-    <div className="content fade-in" style={{ padding: "24px 28px", overflowY: "auto" }}>
+    <>
+      <div className="content fade-in rpt-controls" style={{ padding: "24px 28px", overflowY: "auto" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         .rpt-section { margin-bottom: 28px; }
@@ -278,6 +285,27 @@ function ReportsPage({ patientId, viewMode, onBack }) {
             onMouseLeave={e => { e.currentTarget.style.background = "#EEF2FF"; e.currentTarget.style.color = "#6366F1"; }}
           >
             ← Patients
+          </button>
+          <button
+            onClick={handlePrint}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              fontSize: 13, fontWeight: 600, color: "white",
+              background: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)",
+              border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer",
+              transition: "transform 0.15s",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            Export PDF
           </button>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: C.text }}>
@@ -705,6 +733,21 @@ function ReportsPage({ patientId, viewMode, onBack }) {
         )}
       </div>
     </div>
+
+      {/* HIDDEN PRINT COMPONENT */}
+      <div className="print-only">
+        <style>{`
+          .print-only { display: none; }
+          @media print {
+            .print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; z-index: 9999; }
+            .sidebar, .topbar, .rpt-controls, .no-print { display: none !important; }
+            .app, .main { display: block !important; background: white !important; padding: 0 !important; margin: 0 !important; }
+            body, html { background: white !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+          }
+        `}</style>
+        <MedicalReport data={report} visitId={expandedVisit} ref={reportRef} />
+      </div>
+    </>
   );
 }
 

@@ -233,7 +233,7 @@ export default function ThreeViewer({ showUpper, showLower, showBuccal = true, s
             ))}
 
             {/* Render active measurement points in WORLD space */}
-            {measurePoints.length === 2 && measurePoints.map((pos, idx) => (
+            {measurePoints.length > 0 && measurePoints.map((pos, idx) => (
                 <Sphere key={`measure-${idx}`} position={pos} args={[0.15, 16, 16]}>
                     <meshStandardMaterial color="#3B82F6" roughness={0.2} emissive="#3B82F6" emissiveIntensity={0.5} />
                 </Sphere>

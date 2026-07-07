@@ -17,6 +17,8 @@ class User(Base):
     slmc_registration_number = Column(String, nullable=True)
     specialty = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
+    is_admin = Column(Boolean, default=False)
+
 
     models = relationship("Model", back_populates="owner")
     patients = relationship("Patient", back_populates="clinician")

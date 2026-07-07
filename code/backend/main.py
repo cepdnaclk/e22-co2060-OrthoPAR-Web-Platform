@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -179,5 +179,59 @@ def update_user_password(pass_update: schemas.UserPasswordUpdate, current_user: 
     current_user.hashed_password = auth.hash_password(pass_update.new_password)
     db.commit()
     return {"message": "Password updated successfully"}
+
+# ---------------- ML MODEL MANAGEMENT ----------------
+@app.get("/api/ml-models", response_model=list[schemas.MLModelResponse])
+def get_ml_models(db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_admin)):
+    return crud.get_all_ml_models(db)
+
+@app.post("/api/ml-models/upload", response_model=schemas.MLModelResponse)
+async def upload_ml_model(
+    name: str = Form(...),
+    version: str = Form(...),
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.require_admin),
+    db: Session = Depends(get_db)
+):
+    import shutil
+    
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext != '.zip':
+        raise HTTPException(status_code=400, detail="Must upload a .zip containing the .h5 model files")
+        
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    target_dir = os.path.join(base_dir, "ml_models", version)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    file_path = os.path.join(target_dir, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    import zipfile
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(target_dir)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid zip file: {str(e)}")
+
+    ml_model_data = schemas.MLModelCreate(
+        name=name,
+        version=version,
+        file_path=f"ml_models/{version}",
+        is_active=False
+    )
+    return crud.create_ml_model(db, ml_model_data.model_dump())
+
+@app.put("/api/ml-models/{model_id}/activate", response_model=schemas.MLModelResponse)
+def activate_ml_model(
+    model_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    model = crud.get_ml_model_by_id(db, model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="ML Model not found")
+    return crud.set_active_model(db, model_id)
 
 # TODO: Migrate seed_uploads.py dev utility once E2E verification passes

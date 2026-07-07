@@ -20,6 +20,9 @@ NAMES_UPPER = ['L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4
 
 NAMES_BUCCAL = ['LCover', 'OJ_LCP', 'OJ_UCP']
 
+_loaded_models_cache = {}
+_cached_model_dir = None
+
 class MLService:
     def __init__(self, db: Session):
         self.db = db
@@ -85,8 +88,17 @@ class MLService:
         if not os.path.exists(full_model_path):
             raise FileNotFoundError(f"Model file not found: {full_model_path}")
 
-        # Load model, process STL, and predict
-        model = tf.keras.models.load_model(full_model_path)
+        # Use in-memory cache to avoid slow reloading
+        global _loaded_models_cache, _cached_model_dir
+        if _cached_model_dir != model_dir:
+            _loaded_models_cache.clear()
+            _cached_model_dir = model_dir
+            
+        if file_type not in _loaded_models_cache:
+            _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
+            
+        model = _loaded_models_cache[file_type]
+
         features = self._process_stl(scan_path)
         prediction = model.predict(features)
         

@@ -20,7 +20,9 @@ class User(BaseModel):
     slmc_registration_number: Optional[str] = None
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
+    is_admin: bool = False
     model_config = ConfigDict(from_attributes=True)
+
 
 class Token(BaseModel):
     access_token: str
@@ -142,6 +144,9 @@ class MLModelBase(BaseModel):
     name: str
     version: str
     is_active: bool = False
+
+class MLModelCreate(MLModelBase):
+    file_path: str
 
 class MLModelResponse(MLModelBase):
     id: UUID

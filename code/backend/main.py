@@ -211,6 +211,10 @@ async def upload_ml_model(
     import zipfile
     try:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            for member in zip_ref.namelist():
+                member_path = os.path.abspath(os.path.join(target_dir, member))
+                if not member_path.startswith(os.path.abspath(target_dir)):
+                    raise Exception(f"Illegal path in zip: {member}")
             zip_ref.extractall(target_dir)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid zip file: {str(e)}")

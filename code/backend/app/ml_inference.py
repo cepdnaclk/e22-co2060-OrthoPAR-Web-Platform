@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import trimesh
 import gzip
+import threading
 from sqlalchemy.orm import Session
 import models
 from config import settings
@@ -22,6 +23,7 @@ NAMES_BUCCAL = ['LCover', 'OJ_LCP', 'OJ_UCP']
 
 _loaded_models_cache = {}
 _cached_model_dir = None
+_cache_lock = threading.Lock()
 
 class MLService:
     def __init__(self, db: Session):
@@ -89,15 +91,16 @@ class MLService:
             raise FileNotFoundError(f"Model file not found: {full_model_path}")
 
         # Use in-memory cache to avoid slow reloading
-        global _loaded_models_cache, _cached_model_dir
-        if _cached_model_dir != model_dir:
-            _loaded_models_cache.clear()
-            _cached_model_dir = model_dir
-            
-        if file_type not in _loaded_models_cache:
-            _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
-            
-        model = _loaded_models_cache[file_type]
+        global _loaded_models_cache, _cached_model_dir, _cache_lock
+        with _cache_lock:
+            if _cached_model_dir != model_dir:
+                _loaded_models_cache.clear()
+                _cached_model_dir = model_dir
+                
+            if file_type not in _loaded_models_cache:
+                _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
+                
+            model = _loaded_models_cache[file_type]
 
         features = self._process_stl(scan_path)
         prediction = model.predict(features)

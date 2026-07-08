@@ -34,6 +34,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-orthoapp-scans}
+      # Google OAuth credential
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     ports:
       - "8000:8000"
     restart: always
@@ -50,6 +52,8 @@ services:
     build:
       context: ./code/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     container_name: orthopar_frontend
     ports:
       - "5173:80" # Map host 5173 to container internal NGINX port 80

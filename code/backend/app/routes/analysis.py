@@ -25,7 +25,7 @@ def create_patient(
     patient: schemas.PatientCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     db_patient = models.Patient(clinician_id=current_user.id, **patient.model_dump())
     db.add(db_patient)
@@ -54,7 +54,7 @@ def get_patients(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     # Only return patients for the current clinician
     patients = db.query(models.Patient).filter(models.Patient.clinician_id == current_user.id).offset(skip).limit(limit).all()
@@ -64,7 +64,7 @@ def get_patients(
 def get_patient(
     patient_id: UUID, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     patient = db.query(models.Patient).filter(
         models.Patient.id == patient_id,
@@ -81,7 +81,7 @@ def create_visit(
     visit: schemas.VisitCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     # Verify patient ownership
     patient = db.query(models.Patient).filter(
@@ -117,7 +117,7 @@ def create_visit(
 def get_visit(
     visit_id: UUID, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     visit = db.query(models.Visit).join(models.Patient).filter(
         models.Visit.id == visit_id,
@@ -143,7 +143,7 @@ async def upload_scan(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     try:
         # 1. Verify visit exists and patient belongs to user
@@ -235,7 +235,7 @@ async def upload_scan(
 def get_scan_file(
     scan_id: UUID, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     scan = db.query(models.Scan).join(models.Visit).join(models.Patient).filter(
         models.Scan.id == scan_id,
@@ -288,7 +288,7 @@ def extract_landmarks(
     scan_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     scan = db.query(models.Scan).join(models.Visit).join(models.Patient).filter(
         models.Scan.id == scan_id,
@@ -346,7 +346,7 @@ def calculate_score_for_visit(
     visit_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     visit = db.query(models.Visit).join(models.Patient).filter(
         models.Visit.id == visit_id,
@@ -433,7 +433,7 @@ def save_manual_score(
     score_data: schemas.ParScoreBase,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     visit = db.query(models.Visit).join(models.Patient).filter(
         models.Visit.id == visit_id,
@@ -481,7 +481,7 @@ def get_patient_report(
     patient_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     """
     Returns a full patient report including:
@@ -621,7 +621,7 @@ def get_patient_report(
 @router.get("/reports", response_model=List[schemas.ReportResponse])
 def get_reports(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_approved_user)
 ):
     results = db.query(
         models.ParScore, 
@@ -662,7 +662,7 @@ def get_audit_logs(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user),
+    current_user: models.User = Depends(auth.get_current_approved_user),
 ):
     """
     Returns audit log entries for the authenticated user only.

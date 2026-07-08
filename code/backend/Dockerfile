@@ -20,5 +20,5 @@ COPY . .
 # Expose Uvicorn API Port
 EXPOSE 8000
 
-# Start FastAPI native to the Docker network
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start FastAPI using a small startup wrapper that waits for the DB
+CMD ["python", "wait_and_start.py"]

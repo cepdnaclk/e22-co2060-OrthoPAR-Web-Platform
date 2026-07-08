@@ -7,8 +7,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # Database URL
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/tabelname")
+    # Database URL - default to a local SQLite file for easy local development.
+    # In production, set the DATABASE_URL environment variable to your Postgres URI.
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./dev.db")
 
     # AWS/Clinical Settings (from ML branch)
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "your_access_key")

@@ -6,6 +6,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import AuditTrailPage from './pages/AuditTrailPage';
+import AdminApp from './pages/admin/AdminApp';
 import { useAuth } from './context/AuthContext.jsx';
 import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
@@ -53,6 +54,46 @@ export default function App() {
 
   // Not authenticated — show auth page
   if (!user) return <AuthPage />;
+
+  // Admin routing check
+  if (user.role === "admin") {
+    return <AdminApp />;
+  }
+
+  // Clinician workflow status check (block pending/rejected users from getting inside)
+  if (user.account_status !== "approved") {
+    const initials = user.full_name
+      ? user.full_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+      : user.email.slice(0, 2).toUpperCase();
+    const displayName = user.full_name || user.email;
+
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", height: "100vh", padding: 24, textAlign: "center",
+        background: "#F4F7FB", fontFamily: "DM Sans, sans-serif"
+      }}>
+        <div style={{ fontSize: 54, marginBottom: 16 }}>⏳</div>
+        <h2 style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 8px 0", fontSize: 22, letterSpacing: "-0.5px" }}>
+          Registration Review in Progress
+        </h2>
+        <p style={{ color: "#475569", maxWidth: 460, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 24px 0" }}>
+          Thank you for registering, <strong>{displayName}</strong>. Your clinician profile is currently in our verification queue.
+          Clinical workspaces and calculation features will be enabled as soon as your SLMC credentials are verified by an administrator.
+        </p>
+        <button
+          onClick={logout}
+          style={{
+            padding: "10px 24px", borderRadius: 8, background: "#EF4444",
+            color: "#FFFFFF", border: "none", cursor: "pointer", fontWeight: 600,
+            fontSize: 13, boxShadow: "0 2px 4px rgba(239, 68, 68, 0.2)"
+          }}
+        >
+          Sign Out & Return
+        </button>
+      </div>
+    );
+  }
 
   // Derive initials and display name from real user
   const initials = user.full_name

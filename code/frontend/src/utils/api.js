@@ -183,3 +183,71 @@ export async function getAuditLogs(params = {}) {
   return request(`/api/analysis/audit-logs?${query.toString()}`);
 }
 
+// ── Admin Endpoints ─────────────────────────────────────────────────────────
+
+export async function getAdminStats() {
+  return request("/api/admin/stats");
+}
+
+export async function getAdminUsers() {
+  return request("/api/admin/users");
+}
+
+export async function getPendingUsers() {
+  return request("/api/admin/users/pending");
+}
+
+export async function approveUser(userId, reason = "") {
+  return request(`/api/admin/users/${userId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function rejectUser(userId, reason = "") {
+  return request(`/api/admin/users/${userId}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function disableUser(userId, reason = "") {
+  return request(`/api/admin/users/${userId}/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function changeUserRole(userId, newRole, reason = "") {
+  return request(`/api/admin/users/${userId}/role`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_role: newRole, reason }),
+  });
+}
+
+export async function getAdminAuditLogs(params = {}) {
+  const query = new URLSearchParams();
+  if (params.user_email) query.append("user_email", params.user_email);
+  if (params.action) query.append("action", params.action);
+  if (params.log_status) query.append("log_status", params.log_status);
+  if (params.from_date) query.append("from_date", params.from_date);
+  if (params.to_date) query.append("to_date", params.to_date);
+  if (params.skip !== undefined) query.append("skip", params.skip);
+  if (params.limit !== undefined) query.append("limit", params.limit);
+
+  return request(`/api/admin/audit-logs?${query.toString()}`);
+}
+
+export async function getSecurityEvents() {
+  return request("/api/admin/security-events");
+}
+
+export async function getRecentSecurityAlerts() {
+  return request("/api/admin/security-events/recent");
+}
+
+

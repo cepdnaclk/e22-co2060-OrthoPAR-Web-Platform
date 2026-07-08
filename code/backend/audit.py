@@ -59,6 +59,14 @@ SCAN_UPLOAD_FAILED          = "SCAN_UPLOAD_FAILED"
 LANDMARK_EXTRACTION_FAILED  = "LANDMARK_EXTRACTION_FAILED"
 PAR_SCORE_FAILED            = "PAR_SCORE_FAILED"
 
+# Admin & account management
+USER_APPROVED           = "USER_APPROVED"
+USER_REJECTED           = "USER_REJECTED"
+USER_DISABLED           = "USER_DISABLED"
+ROLE_CHANGED            = "ROLE_CHANGED"
+ADMIN_LOGIN             = "ADMIN_LOGIN"
+SECURITY_ALERT_CREATED  = "SECURITY_ALERT_CREATED"
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers

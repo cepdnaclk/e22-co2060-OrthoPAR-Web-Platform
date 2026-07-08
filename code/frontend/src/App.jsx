@@ -6,6 +6,7 @@ import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import AuditTrailPage from './pages/AuditTrailPage';
+import AdminPage from './pages/AdminPage';
 import { useAuth } from './context/AuthContext.jsx';
 import { C, STATUS_COLORS } from "./utils/constants.js";
 import { Icons } from "./utils/components.jsx";
@@ -67,6 +68,10 @@ export default function App() {
     { id: "audit", label: "Audit Trail", icon: Icons.reports },
   ];
 
+  if (user.is_admin) {
+    navItems.push({ id: "admin", label: "Model Admin", icon: Icons.settings }); // Using settings icon for now as a fallback
+  }
+
   const handleAnalyze = (patientId) => {
     setActivePatientId(patientId);
     setScreen("studio");
@@ -87,6 +92,7 @@ export default function App() {
     reports: { title: "Patient Report", sub: reportPatientId ? "Trend analysis & visit history" : "Select a patient to view their report" },
     settings: { title: "Settings", sub: "Account & preferences" },
     audit: { title: "Audit Trail", sub: "Secure append-only clinicians activity logs" },
+    admin: { title: "Model Management", sub: "Manage PAR index ML models" },
   };
 
   return (
@@ -189,6 +195,7 @@ export default function App() {
               <AuditTrailPage />
             </div>
           )}
+          {screen === "admin" && user.is_admin && <AdminPage />}
         </div>
       </div>
     </>

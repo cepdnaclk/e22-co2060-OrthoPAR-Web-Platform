@@ -183,3 +183,38 @@ export async function getAuditLogs(params = {}) {
   return request(`/api/analysis/audit-logs?${query.toString()}`);
 }
 
+// ── Model Management ──────────────────────────────────────────────────────────
+
+export async function getActiveMLModel() {
+  return request("/api/ml-models/active");
+}
+
+export async function getMLModels() {
+  return request("/api/ml-models");
+}
+
+export async function uploadMLModel(name, version, file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("version", version);
+  formData.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/api/ml-models/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let detail = "Model upload failed";
+    try { detail = (await res.json()).detail || detail; } catch {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function activateMLModel(modelId) {
+  return request(`/api/ml-models/${modelId}/activate`, { method: "PUT" });
+}
+

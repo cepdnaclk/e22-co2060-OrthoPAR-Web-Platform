@@ -300,6 +300,8 @@ def extract_landmarks(
     ml_service = MLService(db)
     try:
         predicted_landmarks, model_version = ml_service.predict_landmarks(scan.object_key, scan.file_type)
+    except ValueError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         audit.record(
             db, audit.LANDMARK_EXTRACTION_FAILED,
@@ -314,6 +316,8 @@ def extract_landmarks(
         )
         raise HTTPException(status_code=500, detail=str(e))
 
+    # Lock the scan row explicitly to prevent race conditions during concurrent recalculations
+    db.query(models.Scan).filter(models.Scan.id == scan_id).with_for_update().first()
     db.query(models.Landmark).filter(models.Landmark.scan_id == scan_id).delete()
     
     db_landmarks = []

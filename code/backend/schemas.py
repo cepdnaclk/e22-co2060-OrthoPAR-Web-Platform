@@ -21,7 +21,9 @@ class User(BaseModel):
     slmc_registration_number: Optional[str] = None
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
+    is_admin: bool = False
     model_config = ConfigDict(from_attributes=True)
+
 
 class Token(BaseModel):
     access_token: str
@@ -144,11 +146,21 @@ class MLModelBase(BaseModel):
     version: str
     is_active: bool = False
 
+class MLModelCreate(MLModelBase):
+    file_path: str
+
 class MLModelResponse(MLModelBase):
     id: UUID
     file_path: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class MLModelActiveResponse(BaseModel):
+    name: str
+    version: str
+
+    class Config:
+        from_attributes = True
 
 class ReportResponse(ParScoreResponse):
     patient_name: str

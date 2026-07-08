@@ -183,6 +183,10 @@ This runs the complete user workflow: Register → Login → Create Patient → 
 | POST   | `/api/analysis/landmarks/extract/{scan_id}`      | Yes  | Run ML landmark extraction      |
 | POST   | `/api/analysis/landmarks/calculate/{patient_id}` | Yes  | Calculate PAR score             |
 
+## Architecture & Documentation
+
+- [Model Management & Safety Architecture](./docs/model_management_architecture.md): Detailed documentation covering the ML pipeline's Zero-Downtime Hot-Swapping, Role-Based Access Control, Zip Path Traversal protection, and Clinical Safety Data Integrity.
+
 ---
 
 ## Project Structure

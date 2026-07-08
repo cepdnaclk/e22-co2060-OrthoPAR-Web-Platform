@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { C, STATUS_COLORS, getScoreStatus } from "../utils/constants.js";
 import { Icons } from "../utils/components.jsx";
-import { getPatients, uploadScan, getPatient, createVisit } from "../utils/api.js";
+import { getPatients, uploadScan, getPatient, createVisit, getActiveMLModel } from "../utils/api.js";
 import "./DashboardPage.css"; // Moved inline styles into this file
 
 function Dashboard({ onAnalyze }) {
   const [search, setSearch] = useState("");
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeModel, setActiveModel] = useState(null);
 
   // Upload Flow State
   const [selectedPatientId, setSelectedPatientId] = useState("");
@@ -26,6 +27,14 @@ function Dashboard({ onAnalyze }) {
       .then(setPatients)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    getActiveMLModel()
+      .then(setActiveModel)
+      .catch(err => {
+        if (!err.message.includes("No active model found")) {
+          console.error("Failed to fetch active model:", err);
+        }
+      });
   }, []);
 
   // Fix 1: Load visits when patient is selected
@@ -121,8 +130,15 @@ function Dashboard({ onAnalyze }) {
     <div>
 
       <div className="upload-card">
-        <div className="section-header">
+        <div className="section-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div className="section-title">New Scan Analysis</div>
+          {activeModel && (
+            <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6, background: "#F1F5F9", padding: "4px 10px", borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <span style={{ width: 6, height: 6, background: C.green, borderRadius: "50%", display: "inline-block" }}></span>
+              <span style={{ color: C.textMuted }}>Scoring Engine:</span> 
+              <strong style={{ color: C.textDark }}>{activeModel.name} {activeModel.version}</strong>
+            </div>
+          )}
         </div>
 
         {/* Step 1 & 2: Selection (Patient Left, Visit Far Right) */}

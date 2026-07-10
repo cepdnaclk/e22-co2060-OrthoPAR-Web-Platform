@@ -17,7 +17,7 @@ Base.metadata.create_all(bind=engine)
 def startup_migrate():
     """
     Safely adds new columns to the users table without dropping existing data.
-    Uses IF NOT EXISTS so it is safe to run on every startup.
+    Each column is attempted independently with proper rollback on failure.
     """
     new_cols = [
         ("role",           "VARCHAR DEFAULT 'clinician' NOT NULL"),
@@ -34,7 +34,9 @@ def startup_migrate():
                     f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"
                 ))
                 conn.commit()
+                print(f"[Migrate] Added column: {col_name}")
             except Exception as e:
+                conn.rollback()  # Prevent cascading InFailedSqlTransaction errors
                 print(f"[Migrate] Skipped {col_name}: {e}")
     print("[Startup] DB migration check complete.")
 

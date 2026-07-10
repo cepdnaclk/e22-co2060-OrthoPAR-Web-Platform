@@ -23,15 +23,15 @@ def startup_migrate():
         ("role",           "VARCHAR DEFAULT 'clinician' NOT NULL"),
         ("account_status", "VARCHAR DEFAULT 'approved' NOT NULL"),
         ("approved_by",    "INTEGER REFERENCES users(id)"),
-        ("approved_at",    "TIMESTAMPTZ"),
-        ("created_at",     "TIMESTAMPTZ DEFAULT NOW()"),
-        ("last_login_at",  "TIMESTAMPTZ"),
+        ("approved_at",    "TIMESTAMP"),
+        ("created_at",     "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        ("last_login_at",  "TIMESTAMP"),
     ]
     with engine.connect() as conn:
         for col_name, col_def in new_cols:
             try:
                 conn.execute(text(
-                    f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                    f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"
                 ))
                 conn.commit()
             except Exception as e:
@@ -71,11 +71,16 @@ app = FastAPI(title="OrthoPAR Integrated API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173"],
+    allow_origins=["*"], # Allow all origins for easy deployment, restrict later in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+@app.head("/")
+def read_root():
+    return {"status": "healthy", "service": "OrthoPAR Backend API"}
 
 app.include_router(analysis.router, prefix="/api")
 app.include_router(admin_router.router, prefix="/api")

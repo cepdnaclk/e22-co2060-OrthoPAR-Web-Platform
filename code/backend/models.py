@@ -6,6 +6,22 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
+
+# ---------------------------------------------------------------------------
+# User role & account-status enums
+# ---------------------------------------------------------------------------
+
+class UserRole(str, PyEnum):
+    ADMIN     = "admin"
+    CLINICIAN = "clinician"   # covers all 4 specialties (stored in specialty col)
+
+class AccountStatus(str, PyEnum):
+    PENDING  = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    DISABLED = "disabled"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -24,7 +40,18 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
 
-    models = relationship("Model", back_populates="owner")
+    # Role & Approval Workflow
+    role           = Column(String, default=UserRole.CLINICIAN, nullable=False)
+    account_status = Column(String, default=AccountStatus.PENDING, nullable=False)
+    approved_by    = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at    = Column(DateTime(timezone=True), nullable=True)
+
+    # Timestamps
+    created_at    = Column(DateTime(timezone=True),
+                           default=lambda: datetime.now(timezone.utc))
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    models   = relationship("Model", back_populates="owner")
     patients = relationship("Patient", back_populates="clinician")
 
 class Model(Base):

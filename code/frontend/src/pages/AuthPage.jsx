@@ -42,11 +42,10 @@ export default function AuthPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     clearMessages();
-    if (!fullName.trim()) { setError("Full name is required."); return; }
     setLoading(true);
     try {
       await apiRegister(email, fullName, password, hospitalName, slmc, specialty, phone);
-      setSuccess("Account created! You can now log in.");
+      setSuccess("Registration submitted! Your account is pending administrator approval.");
       setTab("login");
       setFullName("");
       setPassword("");

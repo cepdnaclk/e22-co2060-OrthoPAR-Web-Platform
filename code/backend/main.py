@@ -2,13 +2,43 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database import engine, Base, get_db
 import models, schemas, auth, storage, crud, audit
 import os
+from datetime import datetime, timezone
 
 from app.routes import analysis
+from app.routes import admin as admin_router
 
 Base.metadata.create_all(bind=engine)
+
+
+def startup_migrate():
+    """
+    Safely adds new columns to the users table without dropping existing data.
+    Uses IF NOT EXISTS so it is safe to run on every startup.
+    """
+    new_cols = [
+        ("role",           "VARCHAR DEFAULT 'clinician' NOT NULL"),
+        ("account_status", "VARCHAR DEFAULT 'approved' NOT NULL"),
+        ("approved_by",    "INTEGER REFERENCES users(id)"),
+        ("approved_at",    "TIMESTAMPTZ"),
+        ("created_at",     "TIMESTAMPTZ DEFAULT NOW()"),
+        ("last_login_at",  "TIMESTAMPTZ"),
+    ]
+    with engine.connect() as conn:
+        for col_name, col_def in new_cols:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}"
+                ))
+                conn.commit()
+            except Exception as e:
+                print(f"[Migrate] Skipped {col_name}: {e}")
+    print("[Startup] DB migration check complete.")
+
+startup_migrate()
 
 # --- Auto-seed ML Model Record ---
 # Ensures the ML pipeline works out of the box for anyone starting the server.
@@ -48,6 +78,7 @@ app.add_middleware(
 )
 
 app.include_router(analysis.router, prefix="/api")
+app.include_router(admin_router.router, prefix="/api")
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 ALLOWED_EXTENSIONS = {".stl", ".obj"}
@@ -72,7 +103,9 @@ def register(user: schemas.UserCreate, request: Request, db: Session = Depends(g
         hospital_name=user.hospital_name,
         slmc_registration_number=user.slmc_registration_number,
         specialty=user.specialty,
-        phone_number=user.phone_number
+        phone_number=user.phone_number,
+        role=models.UserRole.CLINICIAN,
+        account_status=models.AccountStatus.PENDING,  # Must be approved by admin
     )
 
     db.add(new_user)
@@ -85,16 +118,17 @@ def register(user: schemas.UserCreate, request: Request, db: Session = Depends(g
         user_email=new_user.email,
         entity_type="user",
         entity_id=str(new_user.id),
-        summary=f"New user registered: {new_user.email}",
+        summary=f"New user registered (pending approval): {new_user.email}",
         details={
             "full_name": new_user.full_name,
             "hospital_name": new_user.hospital_name,
             "specialty": new_user.specialty,
+            "account_status": "pending",
         },
         request=request,
     )
 
-    return {"message": "User registered successfully"}
+    return {"message": "Registration submitted. Your account is pending admin approval."}
 
 
 # ---------------- LOGIN ----------------
@@ -121,17 +155,39 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), request: Request = N
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Block non-approved accounts from receiving a token
+    if db_user.account_status == models.AccountStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account pending admin approval. Please wait for your account to be reviewed.",
+        )
+    if db_user.account_status == models.AccountStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account registration was rejected. Contact your administrator.",
+        )
+    if db_user.account_status == models.AccountStatus.DISABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been disabled. Contact your administrator.",
+        )
+
     access_token = auth.create_access_token(
         data={"sub": db_user.email}
     )
 
+    # Update last login timestamp
+    db_user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+
+    action = audit.ADMIN_LOGIN if db_user.role == models.UserRole.ADMIN else audit.LOGIN_SUCCESS
     audit.record(
-        db, audit.LOGIN_SUCCESS,
+        db, action,
         user_id=db_user.id,
         user_email=db_user.email,
         entity_type="user",
         entity_id=str(db_user.id),
-        summary=f"Login: {db_user.email}",
+        summary=f"Login: {db_user.email} (role={db_user.role})",
         request=request,
     )
 

@@ -49,11 +49,40 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
-async def require_admin(current_user: models.User = Depends(get_current_user)):
-    if not current_user.is_admin:
+
+async def get_current_approved_user(
+    current_user: models.User = Depends(get_current_user),
+) -> models.User:
+    """
+    Returns the authenticated user only if their account is APPROVED.
+    PENDING, REJECTED, and DISABLED users receive HTTP 403.
+    """
+    if current_user.account_status == models.AccountStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to perform this action",
+            detail="Account pending admin approval. Please wait for your account to be reviewed.",
+        )
+    if current_user.account_status == models.AccountStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account registration was rejected. Contact your administrator.",
+        )
+    if current_user.account_status == models.AccountStatus.DISABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been disabled. Contact your administrator.",
+        )
+    return current_user
+
+
+async def require_admin(
+    current_user: models.User = Depends(get_current_approved_user),
+) -> models.User:
+    """Raises HTTP 403 if the authenticated user is not an admin."""
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required.",
         )
     return current_user
 

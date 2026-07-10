@@ -57,12 +57,20 @@ def test_register_clinical_user():
         }
     )
     assert response.status_code == 200, response.text
-    assert response.json() == {"message": "User registered successfully"}
+    assert response.json() == {"message": "Registration submitted. Your account is pending admin approval."}
 
 def test_visit_longitudinal_hierarchy():
     """
     E2E Test validating MRN integration and Visit tree derivations natively
     """
+    # Force activate the user for testing
+    db = TestingSessionLocal()
+    user = db.query(models.User).filter(models.User.email == "dr.smith@test.com").first()
+    if user:
+        user.account_status = "approved"
+        db.commit()
+    db.close()
+
     # 1. Authenticate to get Bearer
     response = client.post(
         "/login",

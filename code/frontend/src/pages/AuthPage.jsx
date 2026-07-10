@@ -198,6 +198,46 @@ export default function AuthPage() {
                 required
                 id="auth-password"
               />
+              {tab === "register" && password.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: 'flex', gap: 4, height: 4, marginBottom: 4 }}>
+                    {[1, 2, 3, 4].map((level) => {
+                      let strength = 0;
+                      if (password.length >= 6) strength += 1;
+                      if (password.length >= 8) strength += 1;
+                      if (/[A-Z]/.test(password) && /[0-9]/.test(password)) strength += 1;
+                      if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                      
+                      const isActive = strength >= level;
+                      let color = "#E2E8F0"; // default gray
+                      if (isActive) {
+                        if (strength <= 1) color = "#EF4444"; // red
+                        else if (strength === 2) color = "#F59E0B"; // yellow
+                        else if (strength === 3) color = "#10B981"; // green
+                        else color = "#059669"; // dark green
+                      }
+                      
+                      return (
+                        <div key={level} style={{ flex: 1, backgroundColor: color, borderRadius: 2, transition: 'background-color 0.3s' }} />
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#64748B', textAlign: 'right' }}>
+                    {(() => {
+                      let strength = 0;
+                      if (password.length >= 6) strength += 1;
+                      if (password.length >= 8) strength += 1;
+                      if (/[A-Z]/.test(password) && /[0-9]/.test(password)) strength += 1;
+                      if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                      
+                      if (strength <= 1) return "Weak";
+                      if (strength === 2) return "Fair";
+                      if (strength === 3) return "Good";
+                      return "Strong";
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button className="auth-btn" type="submit" disabled={loading} id="auth-submit">

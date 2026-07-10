@@ -8,6 +8,10 @@ RUN npm ci
 
 COPY . .
 
+# Pass in build-time environment variables
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # Emits the production bundle to /app/dist
 RUN npm run build
 
@@ -35,6 +39,7 @@ RUN echo 'server { \
     } \
     location /login { proxy_pass http://orthopar_backend:8000; } \
     location /register { proxy_pass http://orthopar_backend:8000; } \
+    location /auth { proxy_pass http://orthopar_backend:8000; } \
     location /models/upload { proxy_pass http://orthopar_backend:8000; } \
     location /users/me { proxy_pass http://orthopar_backend:8000; } \
     }' > /etc/nginx/conf.d/default.conf

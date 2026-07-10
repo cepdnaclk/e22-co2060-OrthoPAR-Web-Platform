@@ -5,6 +5,7 @@ import PatientsPage from './pages/PatientsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
+import CompleteProfile from './pages/CompleteProfile';
 import AuditTrailPage from './pages/AuditTrailPage';
 import AdminApp from './pages/admin/AdminApp';
 import { useAuth } from './context/AuthContext.jsx';
@@ -55,9 +56,15 @@ export default function App() {
   // Not authenticated — show auth page
   if (!user) return <AuthPage />;
 
-  // Admin routing check
+  // Admin routing check — admins get their own full app
   if (user.role === "admin") {
     return <AdminApp />;
+  }
+
+  // Google OAuth users must complete their profile before proceeding
+  const needsProfileCompletion = user.auth_provider === 'google' && (!user.hospital_name || !user.slmc_registration_number);
+  if (needsProfileCompletion && screen !== 'settings') {
+    return <CompleteProfile onComplete={() => setScreen("dashboard")} />;
   }
 
   // Clinician workflow status check (block pending/rejected users from getting inside)
@@ -108,6 +115,10 @@ export default function App() {
     { id: "audit", label: "Audit Trail", icon: Icons.reports },
   ];
 
+  if (user.is_admin) {
+    navItems.push({ id: "admin", label: "Model Admin", icon: Icons.settings }); // Using settings icon for now as a fallback
+  }
+
   const handleAnalyze = (patientId) => {
     setActivePatientId(patientId);
     setScreen("studio");
@@ -128,6 +139,7 @@ export default function App() {
     reports: { title: "Patient Report", sub: reportPatientId ? "Trend analysis & visit history" : "Select a patient to view their report" },
     settings: { title: "Settings", sub: "Account & preferences" },
     audit: { title: "Audit Trail", sub: "Secure append-only clinicians activity logs" },
+    admin: { title: "Model Management", sub: "Manage PAR index ML models" },
   };
 
   return (
@@ -230,6 +242,7 @@ export default function App() {
               <AuditTrailPage />
             </div>
           )}
+          {screen === "admin" && user.is_admin && <AdminPage />}
         </div>
       </div>
     </>

@@ -10,7 +10,8 @@ export default defineConfig({
       '/login': 'http://localhost:8000',
       '/register': 'http://localhost:8000',
       '/users/me': 'http://localhost:8000',
-      '/models/upload': 'http://localhost:8000'
+      '/models/upload': 'http://localhost:8000',
+      '/auth': 'http://localhost:8000'
     }
   }
 })

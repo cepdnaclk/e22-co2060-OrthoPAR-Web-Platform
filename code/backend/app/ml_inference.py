@@ -3,9 +3,11 @@ import numpy as np
 import tensorflow as tf
 import trimesh
 import gzip
+import threading
 from sqlalchemy.orm import Session
 import models
 from config import settings
+from storage import storage_manager, StorageBase
 
 # Names of landmarks as defined in the legacy ML training scripts
 NAMES_LOWER = ['L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4BT', 'L4PT',
@@ -19,6 +21,14 @@ NAMES_UPPER = ['L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4
                'R5BT', 'R5PT', 'R6BD', 'R6BM', 'R6PD', 'R6PM', 'R7BD', 'R7BM', 'R7PD', 'R7PM']
 
 NAMES_BUCCAL = ['LCover', 'OJ_LCP', 'OJ_UCP']
+
+# In-memory cache for loaded Keras models. 
+# NOTE: In a multi-worker ASGI deployment (e.g. Gunicorn with multiple uvicorn workers), 
+# this cache and lock are per-process. A model activation in one worker will NOT 
+# immediately invalidate the cache in other workers.
+_loaded_models_cache = {}
+_cached_model_dir = None
+_cache_lock = threading.Lock()
 
 class MLService:
     def __init__(self, db: Session):
@@ -37,7 +47,23 @@ class MLService:
         else:
             mesh = trimesh.load(file_path, file_type='stl')
             
-        features = mesh.sample(10000)
+        if isinstance(mesh, trimesh.Scene):
+            # Flatten scenes into a single mesh
+            dumped = mesh.dump(concatenate=True)
+            mesh = dumped[0] if (isinstance(dumped, (list, np.ndarray)) and len(dumped) > 0) else (dumped if not isinstance(dumped, (list, np.ndarray)) else trimesh.Trimesh())
+
+            
+        if len(mesh.vertices) < 10000:
+            import os
+            if os.environ.get("ALLOW_DUMMY_STL") == "1":
+                # Pad small dummy meshes with zeros for testing ONLY
+                features = np.zeros((10000, 3))
+                features[:len(mesh.vertices)] = mesh.vertices
+            else:
+                raise ValueError(f"Insufficient mesh geometry: {len(mesh.vertices)} vertices found, minimum 10000 required for clinical accuracy.")
+        else:
+            features = mesh.sample(10000)
+            
         features = features.reshape(1, 10000, 3)
         return features
 
@@ -57,7 +83,11 @@ class MLService:
         return formatted
 
     def predict_landmarks(self, scan_path, file_type):
-        """Run ML inference on a given scan based on its type."""
+        """
+        Run ML inference on a given scan based on its type.
+        Supports both local file paths and S3 object keys — S3 files are
+        downloaded to a temp location automatically.
+        """
         if not self.active_model_record:
             raise Exception("No active ML model found in database.")
 
@@ -85,10 +115,32 @@ class MLService:
         if not os.path.exists(full_model_path):
             raise FileNotFoundError(f"Model file not found: {full_model_path}")
 
-        # Load model, process STL, and predict
-        model = tf.keras.models.load_model(full_model_path)
-        features = self._process_stl(scan_path)
-        prediction = model.predict(features)
-        
-        # Return formatted landmarks and the model version used
-        return self._format_prediction(prediction[0], names), self.active_model_record.version
+        # Resolve scan file: download from S3 to temp if needed, otherwise use local path
+        is_s3 = StorageBase.is_s3_key(scan_path)
+        local_scan_path = storage_manager.download_to_temp(scan_path)
+
+        try:
+            # Use in-memory cache to avoid slow reloading
+            global _loaded_models_cache, _cached_model_dir, _cache_lock
+            with _cache_lock:
+                if _cached_model_dir != model_dir:
+                    _loaded_models_cache.clear()
+                    _cached_model_dir = model_dir
+                    
+                if file_type not in _loaded_models_cache:
+                    _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
+                    
+                model = _loaded_models_cache[file_type]
+
+            features = self._process_stl(local_scan_path)
+            # Use model() instead of model.predict() for better thread-safety and performance 
+            # on small batches when sharing a single Keras model instance across threads.
+            prediction = model(features, training=False).numpy()
+            
+            # Return formatted landmarks and the model version used
+            return self._format_prediction(prediction[0], names), self.active_model_record.version
+        finally:
+            # Clean up temp file only if we downloaded from S3
+            if is_s3 and os.path.exists(local_scan_path):
+                os.unlink(local_scan_path)
+

@@ -13,6 +13,10 @@ The platform supports the complete clinical workflow, including:
 ## Key features
 
 - **Automated ML Pipeline:** Upload an STL scan → ML extracts landmarks → PAR score is calculated automatically
+- **ML Model Management:** Admins can dynamically hot-swap and version TensorFlow models via the UI with zero downtime
+- **Secure Authentication:** JWT-based auth with Role-Based Access Control (RBAC) and Google OAuth integration
+- **Unified Storage System:** Securely stores patient scans locally or in AWS S3 buckets
+- **Audit Trail:** Comprehensive medical-grade logging of all record changes and analysis executions
 - **Secure 3D Visualization:** Clinician friendly user interface for interacting with 3D dental models
 - **Clinical Data Security:** Secure patient data storage with JWT authentication and password hashing
 - **Scalable Architecture:** Built to support multi institution use and high volume clinical data
@@ -35,7 +39,12 @@ Ensure you have [Docker Desktop](https://www.docker.com/) running locally.
 git clone https://github.com/cepdnaclk/e22-co2060-OrthoPAR-Web-Platform.git
 cd e22-co2060-OrthoPAR-Web-Platform
 
-# 2. Build and launch the full ecosystem in the background
+# 2. Configure Environment Variables
+# Create a .env file in the root directory for Docker
+echo "GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com" > .env
+echo "VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com" >> .env
+
+# 3. Build and launch the full ecosystem in the background
 docker compose up -d --build
 ```
 
@@ -114,11 +123,14 @@ pip install -r code/backend/requirements.txt
 **Step 6: Configure Environment**
 
 ```bash
-# Copy the example environment file
+# Copy the example environment files
 cp code/backend/.env.example code/backend/.env
+cp code/frontend/.env.example code/frontend/.env
 
-# Create the root .env file
-echo "DATABASE_URL=sqlite:///./orthopar.db" > .env
+# Update code/backend/.env and code/frontend/.env with your GOOGLE_CLIENT_ID.
+
+# (Optional) Override SQLite DB for testing
+echo "DATABASE_URL=sqlite:///./orthopar.db" > code/backend/.env
 ```
 
 **Step 7: Run the Backend Server**
@@ -182,6 +194,10 @@ This runs the complete user workflow: Register → Login → Create Patient → 
 | POST   | `/api/analysis/scans`                            | Yes  | Upload an STL scan              |
 | POST   | `/api/analysis/landmarks/extract/{scan_id}`      | Yes  | Run ML landmark extraction      |
 | POST   | `/api/analysis/landmarks/calculate/{patient_id}` | Yes  | Calculate PAR score             |
+
+## Architecture & Documentation
+
+- [Model Management & Safety Architecture](./docs/model_management_architecture.md): Detailed documentation covering the ML pipeline's Zero-Downtime Hot-Swapping, Role-Based Access Control, Zip Path Traversal protection, and Clinical Safety Data Integrity.
 
 ---
 

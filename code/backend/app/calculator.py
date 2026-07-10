@@ -142,7 +142,6 @@ def _calc_buccal_transverse(upper: Dict[str, Point3D], lower: Dict[str, Point3D]
         if no_crossbite_lower <= l6bm.x <= no_crossbite_upper: return 0
         return 1
 
-    return 4
 
 def _calc_buccal_vertical(upper: Dict[str, Point3D], lower: Dict[str, Point3D], side: str) -> int:
     open_bites = 0

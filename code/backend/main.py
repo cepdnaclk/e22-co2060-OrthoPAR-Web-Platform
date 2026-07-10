@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, Request, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -193,6 +193,67 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), request: Request = N
 
     return {"access_token": access_token, "token_type": "bearer"}
 
+# ---------------- GOOGLE OAUTH ----------------
+@app.post("/auth/google", response_model=schemas.Token)
+def google_auth(payload: schemas.GoogleAuthRequest, request: Request, db: Session = Depends(get_db)):
+    """
+    Verify Google ID token, find-or-create user, return internal JWT.
+    """
+    # 1. Verify the Google ID token using google-auth library
+    google_info = auth.verify_google_token(payload.id_token)
+    
+    # 2. Find existing user by google_id or email
+    user = db.query(models.User).filter(
+        (models.User.google_id == google_info["sub"]) |
+        (models.User.email == google_info["email"])
+    ).first()
+
+    is_new_user = False
+    if user:
+        # Link Google ID if user exists by email but hasn't used Google before
+        if not user.google_id:
+            user.google_id = google_info["sub"]
+            db.commit()
+    else:
+        # 3. Create new user from Google profile
+        is_new_user = True
+        user = models.User(
+            email=google_info["email"],
+            full_name=google_info.get("name", ""),
+            auth_provider="google",
+            google_id=google_info["sub"],
+            hashed_password=None,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        audit.record(
+            db, audit.USER_REGISTERED,
+            user_id=user.id,
+            user_email=user.email,
+            entity_type="user",
+            entity_id=str(user.id),
+            summary=f"New user registered via Google: {user.email}",
+            details={"full_name": user.full_name, "provider": "google"},
+            request=request,
+        )
+
+    # 4. Issue internal JWT
+    access_token = auth.create_access_token(data={"sub": user.email})
+    
+    audit.record(
+        db, audit.LOGIN_SUCCESS,
+        user_id=user.id,
+        user_email=user.email,
+        entity_type="user",
+        entity_id=str(user.id),
+        summary=f"Google Login: {user.email}",
+        request=request,
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
 # ---------------- MODEL UPLOAD ----------------
 @app.post("/models/upload", response_model=schemas.ModelResponse)
 async def upload_model(
@@ -239,7 +300,10 @@ async def upload_model(
 
     try:
         # 3. Save file locally
-        model_id, file_path = await storage.storage_manager.save_file(file, current_user.id)
+        import uuid
+        file_content = await file.read()
+        model_id = uuid.uuid4()
+        file_path = await storage.storage_manager.save_file(file_content, file.filename, str(current_user.id))
 
         # 4. Save metadata to Database
         db_model = crud.save_model_metadata(
@@ -340,5 +404,78 @@ def update_user_password(pass_update: schemas.UserPasswordUpdate, request: Reque
         request=request,
     )
     return {"message": "Password updated successfully"}
+
+# ---------------- ML MODEL MANAGEMENT ----------------
+@app.get("/api/ml-models", response_model=list[schemas.MLModelResponse])
+def get_ml_models(db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_admin)):
+    return crud.get_all_ml_models(db)
+
+@app.post("/api/ml-models/upload", response_model=schemas.MLModelResponse)
+async def upload_ml_model(
+    name: str = Form(...),
+    version: str = Form(...),
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.require_admin),
+    db: Session = Depends(get_db)
+):
+    import shutil
+    
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext != '.zip':
+        raise HTTPException(status_code=400, detail="Must upload a .zip containing the .h5 model files")
+        
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    target_dir = os.path.join(base_dir, "ml_models", version)
+    os.makedirs(target_dir, exist_ok=True)
+    
+    file_path = os.path.join(target_dir, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    import zipfile
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            target_dir_abs = os.path.abspath(target_dir) + os.sep
+            for member in zip_ref.namelist():
+                member_path = os.path.abspath(os.path.join(target_dir, member))
+                if not member_path.startswith(target_dir_abs):
+                    raise Exception(f"Illegal path in zip: {member}")
+            zip_ref.extractall(target_dir)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid zip file: {str(e)}")
+
+    ml_model_data = schemas.MLModelCreate(
+        name=name,
+        version=version,
+        file_path=f"ml_models/{version}",
+        is_active=False
+    )
+    return crud.create_ml_model(db, ml_model_data.model_dump())
+
+@app.get("/api/ml-models/active", response_model=schemas.MLModelActiveResponse)
+def get_active_model(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Get the currently active model (name and version only).
+    Available to any authenticated clinician.
+    """
+    model = db.query(models.MLModel).filter(models.MLModel.is_active == True).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="No active model found")
+    return model
+
+@app.put("/api/ml-models/{model_id}/activate", response_model=schemas.MLModelResponse)
+def activate_ml_model(
+    model_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_admin)
+):
+    model = crud.get_ml_model_by_id(db, model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="ML Model not found")
+    return crud.set_active_model(db, model_id)
 
 # TODO: Migrate seed_uploads.py dev utility once E2E verification passes

@@ -5,7 +5,9 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, settings
 import database
 import models
 
@@ -83,3 +85,26 @@ async def require_admin(
             detail="Administrator access required.",
         )
     return current_user
+
+def verify_google_token(token: str) -> dict:
+    """
+    Verify Google ID token and return user info.
+    Raises HTTPException if token is invalid.
+    """
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID
+        )
+        return {
+            "email": idinfo["email"],
+            "name": idinfo.get("name", ""),
+            "sub": idinfo["sub"],      # Google's unique user ID
+            "picture": idinfo.get("picture", ""),
+        }
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google token"
+        )

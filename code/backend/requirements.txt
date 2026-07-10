@@ -26,3 +26,4 @@ python-dotenv==1.2.1
 aiofiles==24.1.0
 boto3==1.33.13
 setuptools
+google-auth>=2.22.0

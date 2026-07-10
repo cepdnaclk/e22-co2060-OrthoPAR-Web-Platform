@@ -13,9 +13,13 @@ class UserCreate(BaseModel):
     specialty: Optional[str] = None
     phone_number: Optional[str] = None
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -134,11 +138,21 @@ class MLModelBase(BaseModel):
     version: str
     is_active: bool = False
 
+class MLModelCreate(MLModelBase):
+    file_path: str
+
 class MLModelResponse(MLModelBase):
     id: UUID
     file_path: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class MLModelActiveResponse(BaseModel):
+    name: str
+    version: str
+
+    class Config:
+        from_attributes = True
 
 class ReportResponse(ParScoreResponse):
     patient_name: str

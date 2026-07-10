@@ -28,10 +28,10 @@ function STLMesh({ url, position, color, onAddLandmark, onLoadGeometry }) {
   }, [geometry, onLoadGeometry]);
 
   return (
-    <mesh 
-      position={position} 
-      onClick={onAddLandmark} 
-      castShadow 
+    <mesh
+      position={position}
+      onClick={onAddLandmark}
+      castShadow
       receiveShadow
     >
       <primitive object={geometry} attach="geometry" />
@@ -75,9 +75,9 @@ function JawModel({ showUpper, showLower, showBuccal, onAddLandmark, scans, onBo
       {showUpper && upperScanUrl ? (
         <MeshErrorBoundary>
           <Suspense fallback={<FallbackMesh message="Downloading Upper STL..." />}>
-            <STLMesh 
-              url={`http://localhost:8000/api/analysis/scans/file/${upperScanUrl}`}
-              position={[0, 0, 0]} 
+            <STLMesh
+              url={`/api/analysis/scans/file/${upperScanUrl}`}
+              position={[0, 0, 0]}
               color="#E8F4FD"
               onAddLandmark={onAddLandmark}
               onLoadGeometry={(box) => onBoundsLoad("Upper Arch Segment", box)}
@@ -85,15 +85,15 @@ function JawModel({ showUpper, showLower, showBuccal, onAddLandmark, scans, onBo
           </Suspense>
         </MeshErrorBoundary>
       ) : showUpper && (
-         <FallbackMesh message="No Upper Arch found" />
+        <FallbackMesh message="No Upper Arch found" />
       )}
 
       {showLower && lowerScanUrl ? (
         <MeshErrorBoundary>
           <Suspense fallback={<FallbackMesh message="Downloading Lower STL..." />}>
-            <STLMesh 
-              url={`http://localhost:8000/api/analysis/scans/file/${lowerScanUrl}`}
-              position={[0, 0, 0]} 
+            <STLMesh
+              url={`/api/analysis/scans/file/${lowerScanUrl}`}
+              position={[0, 0, 0]}
               color="#F0F9FF"
               onAddLandmark={onAddLandmark}
               onLoadGeometry={(box) => onBoundsLoad("Lower Arch Segment", box)}
@@ -101,15 +101,15 @@ function JawModel({ showUpper, showLower, showBuccal, onAddLandmark, scans, onBo
           </Suspense>
         </MeshErrorBoundary>
       ) : showLower && (
-         <FallbackMesh message="No Lower Arch found" />
+        <FallbackMesh message="No Lower Arch found" />
       )}
 
       {showBuccal && buccalScanUrl ? (
         <MeshErrorBoundary>
           <Suspense fallback={<FallbackMesh message="Downloading Buccal STL..." />}>
-            <STLMesh 
-              url={`http://localhost:8000/api/analysis/scans/file/${buccalScanUrl}`}
-              position={[0, 0, 0]} 
+            <STLMesh
+              url={`/api/analysis/scans/file/${buccalScanUrl}`}
+              position={[0, 0, 0]}
               color="#F0FDF4"
               onAddLandmark={onAddLandmark}
               onLoadGeometry={(box) => onBoundsLoad("Buccal Segment", box)}
@@ -117,7 +117,7 @@ function JawModel({ showUpper, showLower, showBuccal, onAddLandmark, scans, onBo
           </Suspense>
         </MeshErrorBoundary>
       ) : showBuccal && (
-         <FallbackMesh message="No Buccal Segment found" />
+        <FallbackMesh message="No Buccal Segment found" />
       )}
     </group>
   );
@@ -158,24 +158,24 @@ export default function ThreeViewer({ showUpper, showLower, showBuccal = true, s
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-        <Canvas camera={{ position: [0, 8, 8], fov: 45 }} shadows>
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-            <directionalLight position={[-10, 10, -5]} intensity={0.5} />
-            
-            <Center>
-                <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
-                    <JawModel 
-                        showUpper={effUpper} 
-                        showLower={effLower}
-                        showBuccal={effBuccal}
-                        onAddLandmark={handlePointerDown} 
-                        scans={scans}
-                        onBoundsLoad={handleBoundsLoad}
-                    />
+      <Canvas camera={{ position: [0, 8, 8], fov: 45 }} shadows>
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+        <directionalLight position={[-10, 10, -5]} intensity={0.5} />
 
-                    {/* Render pre-calculated Backend AI landmarks mapped dynamically to geometric bounds */}
-                    {highlightLandmarks && scans.map(s => {
+        <Center>
+          <group rotation={[-Math.PI / 2, 0, 0]} scale={[0.1, 0.1, 0.1]}>
+            <JawModel
+              showUpper={effUpper}
+              showLower={effLower}
+              showBuccal={effBuccal}
+              onAddLandmark={handlePointerDown}
+              scans={scans}
+              onBoundsLoad={handleBoundsLoad}
+            />
+
+            {/* Render pre-calculated Backend AI landmarks mapped dynamically to geometric bounds */}
+            {highlightLandmarks && scans.map(s => {
                         if (s.file_type === "Upper Arch Segment" && !effUpper) return null;
                         if (s.file_type === "Lower Arch Segment" && !effLower) return null;
                         if (s.file_type === "Buccal Segment" && !effBuccal) return null;
@@ -249,9 +249,9 @@ export default function ThreeViewer({ showUpper, showLower, showBuccal = true, s
                 />
             )}
 
-            <OrbitControls 
-                enableDamping 
-                dampingFactor={0.05} 
+            <OrbitControls
+                enableDamping
+                dampingFactor={0.05}
                 maxDistance={20}
                 minDistance={2}
                 mouseButtons={{
@@ -260,30 +260,30 @@ export default function ThreeViewer({ showUpper, showLower, showBuccal = true, s
                     RIGHT: THREE.MOUSE.PAN
                 }}
             />
-        </Canvas>
-        
-        {landmarks.length > 0 && (
-            <button 
-                onClick={() => setLandmarks([])}
-                style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    padding: '8px 16px',
-                    background: 'rgba(255,255,255,0.9)',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#334155',
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-                }}
-            >
-                Clear Landmarks ({landmarks.length})
-            </button>
-        )}
+      </Canvas>
+
+      {landmarks.length > 0 && (
+        <button
+          onClick={() => setLandmarks([])}
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.9)',
+            border: '1px solid #CBD5E1',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#334155',
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+          }}
+        >
+          Clear Landmarks ({landmarks.length})
+        </button>
+      )}
     </div>
   );
 }

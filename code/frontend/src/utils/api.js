@@ -143,14 +143,64 @@ export async function createVisit(patientId, notes = "", status = "Pre-Treatment
 
 export async function uploadScan(visitId, fileType, file) {
   const token = getToken();
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // 1. Ask backend for an upload URL
+  const urlRes = await fetch(`${BASE_URL}/api/analysis/scans/upload-url?visit_id=${visitId}&filename=${encodeURIComponent(file.name)}`, {
+    headers: authHeaders
+  });
+
+  if (!urlRes.ok) {
+    let detail = `Failed to get upload URL (${urlRes.status})`;
+    try { detail = (await urlRes.json()).detail || detail; } catch {}
+    throw new Error(detail);
+  }
+
+  const { upload_url, method, direct_upload, object_key } = await urlRes.json();
+
+  if (direct_upload) {
+    // 2. Direct S3 Upload
+    const s3Res = await fetch(upload_url, {
+      method: method,
+      headers: {
+        "Content-Type": "application/octet-stream"
+      },
+      body: file
+    });
+
+    if (!s3Res.ok) {
+      throw new Error(`Direct upload failed (${s3Res.status})`);
+    }
+
+    // 3. Confirm with backend
+    const confirmRes = await fetch(`${BASE_URL}/api/analysis/scans/confirm`, {
+      method: "POST",
+      headers: {
+        ...authHeaders,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        visit_id: visitId,
+        file_type: fileType,
+        object_key: object_key
+      })
+    });
+
+    if (!confirmRes.ok) {
+      let detail = `Upload confirmation failed (${confirmRes.status})`;
+      try { detail = (await confirmRes.json()).detail || detail; } catch {}
+      throw new Error(detail);
+    }
+    return confirmRes.json();
+  }
+
+  // Fallback: Local upload (send file through backend)
   const formData = new FormData();
   formData.append("file", file);
 
   const res = await fetch(`${BASE_URL}/api/analysis/scans?visit_id=${visitId}&file_type=${encodeURIComponent(fileType)}`, {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: authHeaders,
     body: formData,
   });
 

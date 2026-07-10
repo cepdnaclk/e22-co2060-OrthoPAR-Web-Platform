@@ -53,6 +53,14 @@ class StorageBase(ABC):
         """Delete a file by its storage key. Returns True on success."""
         ...
 
+    @abstractmethod
+    def generate_presigned_upload_url(self, object_key: str, expiration: int = 3600) -> dict:
+        """
+        Generate a presigned URL for direct browser uploads.
+        Returns a dict: {"upload_url": str, "method": str, "direct_upload": bool}
+        """
+        ...
+
     @staticmethod
     def is_s3_key(object_key: str) -> bool:
         """Check whether an object_key refers to an S3 object (vs a local path)."""
@@ -122,6 +130,10 @@ class LocalStorage(StorageBase):
             os.remove(file_path)
             return True
         return False
+        
+    def generate_presigned_upload_url(self, object_key: str, expiration: int = 3600) -> dict:
+        """Local storage doesn't support direct uploads via presigned URLs."""
+        return {"upload_url": "", "method": "POST", "direct_upload": False}
 
     def download_to_temp(self, object_key: str) -> str:
         """For local files, just return the path directly — no download needed."""
@@ -207,6 +219,19 @@ class S3Storage(StorageBase):
         except Exception:
             return False
 
+    def generate_presigned_upload_url(self, object_key: str, expiration: int = 3600) -> dict:
+        """Generate a presigned PUT URL for direct browser uploads."""
+        url = self.client.generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": self.bucket_name, 
+                "Key": object_key,
+                "ContentType": "application/octet-stream"
+            },
+            ExpiresIn=expiration
+        )
+        return {"upload_url": url, "method": "PUT", "direct_upload": True}
+
     def generate_presigned_url(self, object_key: str, expiration: int = 3600) -> str:
         """Generate a presigned URL for direct browser access (optional)."""
         return self.client.generate_presigned_url(
@@ -284,6 +309,12 @@ class HybridStorage(StorageBase):
         if self.is_s3_key(object_key):
             return self.s3.delete_file(object_key)
         return self.local.delete_file(object_key)
+
+    def generate_presigned_upload_url(self, object_key: str, expiration: int = 3600) -> dict:
+        """Route to S3 if configured, otherwise indicate local fallback."""
+        if self.primary == "s3":
+            return self.s3.generate_presigned_upload_url(object_key, expiration)
+        return self.local.generate_presigned_upload_url(object_key, expiration)
 
     def download_to_temp(self, object_key: str) -> str:
         """Auto-route: S3 keys get downloaded, local keys return path directly."""

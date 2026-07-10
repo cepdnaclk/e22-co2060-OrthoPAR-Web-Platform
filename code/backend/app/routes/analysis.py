@@ -128,6 +128,88 @@ def get_visit(
 
 # ---------------- SCANS ----------------
 
+from pydantic import BaseModel
+
+class ScanConfirmRequest(BaseModel):
+    visit_id: UUID
+    file_type: str
+    object_key: str
+
+@router.get("/scans/upload-url")
+def get_upload_url(
+    visit_id: UUID,
+    filename: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_approved_user)
+):
+    """Returns a presigned URL for direct browser-to-S3 upload."""
+    # Verify visit exists and belongs to user
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == visit_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
+
+    object_key = f"scans/temp/{visit_id}/{filename}"
+    upload_info = storage_manager.generate_presigned_upload_url(object_key)
+    
+    # If using local storage, direct upload won't work, so signal fallback to standard POST
+    return {
+        "upload_url": upload_info["upload_url"],
+        "method": upload_info["method"],
+        "direct_upload": upload_info["direct_upload"],
+        "object_key": object_key
+    }
+
+@router.post("/scans/confirm", response_model=schemas.ScanResponse)
+def confirm_scan_upload(
+    payload: ScanConfirmRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_approved_user)
+):
+    """Confirms a direct S3 upload completed and creates the DB record."""
+    visit = db.query(models.Visit).join(models.Patient).filter(
+        models.Visit.id == payload.visit_id,
+        models.Patient.clinician_id == current_user.id
+    ).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found or unauthorized")
+
+    # Purge existing scan record of this file_type
+    db.query(models.Scan).filter(
+        models.Scan.visit_id == payload.visit_id,
+        models.Scan.file_type == payload.file_type
+    ).delete()
+    db.commit()
+
+    db_scan = models.Scan(
+        visit_id=payload.visit_id, 
+        file_type=payload.file_type, 
+        object_key=payload.object_key, 
+        status="temp"
+    )
+    db.add(db_scan)
+    db.commit()
+    db.refresh(db_scan)
+
+    audit.record(
+        db, audit.SCAN_UPLOADED,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="scan",
+        entity_id=str(db_scan.id),
+        summary=f"Scan uploaded direct ({payload.file_type}) for visit {payload.visit_id}",
+        details={
+            "scan_id": str(db_scan.id),
+            "visit_id": str(payload.visit_id),
+            "file_type": payload.file_type,
+        },
+        request=request,
+    )
+    return db_scan
+
 @router.post("/scans", response_model=schemas.ScanResponse)
 async def upload_scan(
     visit_id: UUID,

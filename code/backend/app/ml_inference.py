@@ -19,12 +19,15 @@ _LOW_MEMORY_MODE: bool = os.getenv("LOW_MEMORY_MODE", "False").lower() in (
     "true", "1", "t", "y", "yes"
 )
 
+print(f"[ML Startup] LOW_MEMORY_MODE environment variable is: {_LOW_MEMORY_MODE}")
+
 if _LOW_MEMORY_MODE:
+    print("[ML Startup] Restricting TensorFlow internal thread pools to 1 thread.")
     try:
         tf.config.threading.set_intra_op_parallelism_threads(1)
         tf.config.threading.set_inter_op_parallelism_threads(1)
-    except RuntimeError:
-        # TF was already initialised (e.g. during testing) — best effort.
+    except RuntimeError as e:
+        print(f"[ML Startup] Failed to set thread limits: {e}")
         pass
 
 # ---------------------------------------------------------------------------

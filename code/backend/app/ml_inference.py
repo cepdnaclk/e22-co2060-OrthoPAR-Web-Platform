@@ -1,162 +1,207 @@
 import os
+import gzip
+import threading
+
 import numpy as np
 import tensorflow as tf
 import trimesh
-import gzip
-import threading
 from sqlalchemy.orm import Session
+
 import models
-from config import settings
 from storage import storage_manager, StorageBase
 
-# Names of landmarks as defined in the legacy ML training scripts
-NAMES_LOWER = ['L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4BT', 'L4PT',
-         'L5BT', 'L5PT', 'L6BD', 'L6BM', 'L6PD', 'L6PM', 'L7BD', 'L7BM', 'L7PD', 'L7PM',
-         'R1D', 'R1Lower', 'R1M', 'R1Mid', 'R2D', 'R2M', 'R2Mid', 'R3M', 'R3Mid', 'R4BT',
-         'R4PT', 'R5BT', 'R5PT', 'R6BD', 'R6BM', 'R6PD', 'R6PM', 'R7BD', 'R7BM', 'R7PD', 'R7PM']
+# ---------------------------------------------------------------------------
+# TensorFlow thread limits — must be set BEFORE any model is loaded.
+# Setting them inside a request handler is too late; TF initialises its
+# thread pools on first use and ignores later calls.
+# ---------------------------------------------------------------------------
+_LOW_MEMORY_MODE: bool = os.getenv("LOW_MEMORY_MODE", "False").lower() in (
+    "true", "1", "t", "y", "yes"
+)
 
-NAMES_UPPER = ['L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4BT', 'L4PT', 
-               'L5BT', 'L5PT', 'L6BD', 'L6BM', 'L6PD', 'L6PM', 'L7BD', 'L7BM', 'L7PD', 'L7PM', 
-               'R1D', 'R1M', 'R1Mid', 'R2D', 'R2M', 'R2Mid', 'R3M', 'R3Mid', 'R4BT', 'R4PT', 
-               'R5BT', 'R5PT', 'R6BD', 'R6BM', 'R6PD', 'R6PM', 'R7BD', 'R7BM', 'R7PD', 'R7PM']
+if _LOW_MEMORY_MODE:
+    try:
+        tf.config.threading.set_intra_op_parallelism_threads(1)
+        tf.config.threading.set_inter_op_parallelism_threads(1)
+    except RuntimeError:
+        # TF was already initialised (e.g. during testing) — best effort.
+        pass
+
+# ---------------------------------------------------------------------------
+# Landmark names as defined in the legacy ML training scripts
+# ---------------------------------------------------------------------------
+NAMES_LOWER = [
+    'L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4BT', 'L4PT',
+    'L5BT', 'L5PT', 'L6BD', 'L6BM', 'L6PD', 'L6PM', 'L7BD', 'L7BM', 'L7PD', 'L7PM',
+    'R1D', 'R1Lower', 'R1M', 'R1Mid', 'R2D', 'R2M', 'R2Mid', 'R3M', 'R3Mid', 'R4BT',
+    'R4PT', 'R5BT', 'R5PT', 'R6BD', 'R6BM', 'R6PD', 'R6PM', 'R7BD', 'R7BM', 'R7PD', 'R7PM',
+]
+
+NAMES_UPPER = [
+    'L1D', 'L1M', 'L1Mid', 'L2D', 'L2M', 'L2Mid', 'L3M', 'L3Mid', 'L4BT', 'L4PT',
+    'L5BT', 'L5PT', 'L6BD', 'L6BM', 'L6PD', 'L6PM', 'L7BD', 'L7BM', 'L7PD', 'L7PM',
+    'R1D', 'R1M', 'R1Mid', 'R2D', 'R2M', 'R2Mid', 'R3M', 'R3Mid', 'R4BT', 'R4PT',
+    'R5BT', 'R5PT', 'R6BD', 'R6BM', 'R6PD', 'R6PM', 'R7BD', 'R7BM', 'R7PD', 'R7PM',
+]
 
 NAMES_BUCCAL = ['LCover', 'OJ_LCP', 'OJ_UCP']
 
-# In-memory cache for loaded Keras models. 
-# NOTE: In a multi-worker ASGI deployment (e.g. Gunicorn with multiple uvicorn workers), 
-# this cache and lock are per-process. A model activation in one worker will NOT 
-# immediately invalidate the cache in other workers.
-_loaded_models_cache = {}
-_cached_model_dir = None
-_cache_lock = threading.Lock()
+# Map scan-type strings to (model filename, landmark names list)
+_SCAN_TYPE_MAP: dict = {
+    "Upper Arch Segment": ("upper_landmark_prediction_model.h5",  NAMES_UPPER),
+    "Lower Arch Segment": ("lower_landmark_prediction_model.h5",  NAMES_LOWER),
+    "Buccal Segment":     ("buccal_landmark_prediction_model.h5", NAMES_BUCCAL),
+}
+
+# ---------------------------------------------------------------------------
+# Module-level model cache
+#
+# Models are loaded ONCE (lazily, on first request for each scan type) and
+# reused for every subsequent call. Loading is protected by a lock so
+# concurrent requests don't race to load the same file twice.
+#
+# Requests may still run concurrently (multiple clients, retries, multiple workers).
+# We avoid calling clear_session() between requests because it would invalidate
+# the cached model for other in-flight requests; if inference must be serialized,
+# add a dedicated inference lock at the call site.
+#
+# Key:   scan-type string  e.g. "Upper Arch Segment"
+# Value: loaded tf.keras.Model
+# ---------------------------------------------------------------------------
+_model_cache: dict = {}
+_model_cache_lock = threading.Lock()
+_cached_model_dir: str | None = None
+
+
+def _get_or_load_model(model_dir: str, scan_type: str):
+    """
+    Return the cached Keras model for scan_type, loading from disk on first call.
+
+    Thread-safe: concurrent callers for the same scan_type block until the
+    first load completes, then all share the same model object.
+    """
+    global _model_cache, _cached_model_dir
+
+    filename, _ = _SCAN_TYPE_MAP[scan_type]
+    full_path = os.path.join(model_dir, filename)
+
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f"Model file not found: {full_path}")
+
+    with _model_cache_lock:
+        # If the active model directory changed, evict the stale cache.
+        if _cached_model_dir != model_dir:
+            _model_cache.clear()
+            _cached_model_dir = model_dir
+
+        if scan_type not in _model_cache:
+            _model_cache[scan_type] = tf.keras.models.load_model(
+                full_path, compile=False
+            )
+
+        return _model_cache[scan_type]
+
+
+# ---------------------------------------------------------------------------
+# MLService
+# ---------------------------------------------------------------------------
 
 class MLService:
     def __init__(self, db: Session):
         self.db = db
         self.active_model_record = self._get_active_model_record()
-        
+
     def _get_active_model_record(self):
         """Query the database for the currently active ML model."""
-        return self.db.query(models.MLModel).filter(models.MLModel.is_active == True).first()
+        return (
+            self.db.query(models.MLModel)
+            .filter(models.MLModel.is_active == True)
+            .first()
+        )
 
-    def _process_stl(self, file_path):
-        """Load and sample 10,000 points from the STL file (supports .gz)."""
-        if file_path.endswith('.gz'):
-            with gzip.open(file_path, 'rb') as f:
-                mesh = trimesh.load(f, file_type='stl')
+    def _process_stl(self, file_path: str) -> np.ndarray:
+        """Load an STL file (optionally gzip-compressed) and sample 10,000 points."""
+        if file_path.endswith(".gz"):
+            with gzip.open(file_path, "rb") as f:
+                mesh = trimesh.load(f, file_type="stl")
         else:
-            mesh = trimesh.load(file_path, file_type='stl')
-            
+            mesh = trimesh.load(file_path, file_type="stl")
+
         if isinstance(mesh, trimesh.Scene):
-            # Flatten scenes into a single mesh
             dumped = mesh.dump(concatenate=True)
-            mesh = dumped[0] if (isinstance(dumped, (list, np.ndarray)) and len(dumped) > 0) else (dumped if not isinstance(dumped, (list, np.ndarray)) else trimesh.Trimesh())
-
-            
-        if len(mesh.vertices) < 10000:
-            import os
-            if os.environ.get("ALLOW_DUMMY_STL") == "1":
-                # Pad small dummy meshes with zeros for testing ONLY
-                features = np.zeros((10000, 3))
-                features[:len(mesh.vertices)] = mesh.vertices
+            if isinstance(dumped, (list, np.ndarray)):
+                mesh = dumped[0] if len(dumped) > 0 else trimesh.Trimesh()
             else:
-                raise ValueError(f"Insufficient mesh geometry: {len(mesh.vertices)} vertices found, minimum 10000 required for clinical accuracy.")
+                mesh = dumped
+
+        if len(mesh.vertices) < 10_000:
+            if os.environ.get("ALLOW_DUMMY_STL") == "1":
+                # Pad with zeros — for unit-testing ONLY, never in production.
+                features = np.zeros((10_000, 3))
+                features[: len(mesh.vertices)] = mesh.vertices
+            else:
+                raise ValueError(
+                    f"Insufficient mesh geometry: {len(mesh.vertices)} vertices found, "
+                    "minimum 10,000 required for clinical accuracy."
+                )
         else:
-            features = mesh.sample(10000)
-            
-        features = features.reshape(1, 10000, 3)
-        return features
+            features = mesh.sample(10_000)
 
-    def _format_prediction(self, prediction, names):
-        """Map the numerical ML output back to named landmark objects."""
-        formatted = []
-        for i, name in enumerate(names):
-            # Extract x, y, z coordinates
-            x, y, z = prediction[i*3:(i+1)*3].tolist()
-            formatted.append({
+        return features.reshape(1, 10_000, 3)
+
+    def _format_prediction(self, prediction: np.ndarray, names: list) -> list:
+        """Map flat ML output to a list of named landmark dicts."""
+        return [
+            {
                 "point_name": name,
-                "x": x,
-                "y": y,
-                "z": z,
-                "is_ai_predicted": True
-            })
-        return formatted
+                "x": float(prediction[i * 3]),
+                "y": float(prediction[i * 3 + 1]),
+                "z": float(prediction[i * 3 + 2]),
+                "is_ai_predicted": True,
+            }
+            for i, name in enumerate(names)
+        ]
 
-    def predict_landmarks(self, scan_path, file_type):
+    def predict_landmarks(self, scan_path: str, file_type: str):
         """
-        Run ML inference on a given scan based on its type.
-        Supports both local file paths and S3 object keys — S3 files are
-        downloaded to a temp location automatically.
+        Run ML inference on scan_path for the given file_type.
+
+        Accepts both local file paths and S3 object keys; S3 files are
+        downloaded to a temporary location and cleaned up after inference
+        regardless of success or failure.
+
+        Returns (formatted_landmarks, model_version).
         """
         if not self.active_model_record:
-            raise Exception("No active ML model found in database.")
+            raise RuntimeError("No active ML model found in database.")
 
-        # Determine which specific model file to load based on scan type
-        # Use absolute path to avoid ambiguity in different execution contexts
+        if file_type not in _SCAN_TYPE_MAP:
+            raise ValueError(f"Unsupported scan type for ML prediction: {file_type!r}")
+
+        # Resolve the directory containing the three .h5 model files.
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         model_dir = os.path.join(base_dir, self.active_model_record.file_path)
-        
-        model_filename = ""
-        names = []
-        
-        if file_type == "Upper Arch Segment":
-            model_filename = "upper_landmark_prediction_model.h5"
-            names = NAMES_UPPER
-        elif file_type == "Lower Arch Segment":
-            model_filename = "lower_landmark_prediction_model.h5"
-            names = NAMES_LOWER
-        elif file_type == "Buccal Segment":
-            model_filename = "buccal_landmark_prediction_model.h5"
-            names = NAMES_BUCCAL
-        else:
-            raise ValueError(f"Unsupported scan type for ML prediction: {file_type}")
 
-        full_model_path = os.path.join(model_dir, model_filename)
-        if not os.path.exists(full_model_path):
-            raise FileNotFoundError(f"Model file not found: {full_model_path}")
+        _, names = _SCAN_TYPE_MAP[file_type]
 
-        # Resolve scan file: download from S3 to temp if needed, otherwise use local path
+        # Download from S3 to a local temp file if necessary.
         is_s3 = StorageBase.is_s3_key(scan_path)
         local_scan_path = storage_manager.download_to_temp(scan_path)
 
         try:
-            # Use in-memory cache to avoid slow reloading (unless LOW_MEMORY_MODE is enabled)
-            global _loaded_models_cache, _cached_model_dir, _cache_lock
-            
-            low_memory = os.getenv("LOW_MEMORY_MODE", "False").lower() in ("true", "1", "t", "y", "yes")
-            
-            if low_memory:
-                # Bypass cache entirely to save RAM in restricted environments like Render Free Tier
-                model = tf.keras.models.load_model(full_model_path)
-            else:
-                with _cache_lock:
-                    if _cached_model_dir != model_dir:
-                        _loaded_models_cache.clear()
-                        _cached_model_dir = model_dir
-                        
-                    if file_type not in _loaded_models_cache:
-                        _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
-                        
-                    model = _loaded_models_cache[file_type]
-
+            model = _get_or_load_model(model_dir, file_type)
             features = self._process_stl(local_scan_path)
-            # Use model() instead of model.predict() for better thread-safety and performance 
-            # on small batches when sharing a single Keras model instance across threads.
+
+            # model() is preferred over model.predict() for single-batch inference:
+            # faster, no progress-bar overhead, and safe with the cached model.
             prediction = model(features, training=False).numpy()
-            
-            formatted_prediction = self._format_prediction(prediction[0], names)
-            
-            if low_memory:
-                # Force release model memory and clear Keras backend session
-                tf.keras.backend.clear_session()
-                del model
-                import gc
-                gc.collect()
-                
-            # Return formatted landmarks and the model version used
-            return formatted_prediction, self.active_model_record.version
+
+            return (
+                self._format_prediction(prediction[0], names),
+                self.active_model_record.version,
+            )
+
         finally:
-            # Clean up temp file only if we downloaded from S3
+            # Always remove the temp file we downloaded, even on error.
             if is_s3 and os.path.exists(local_scan_path):
                 os.unlink(local_scan_path)
-

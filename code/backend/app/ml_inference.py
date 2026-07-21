@@ -178,10 +178,12 @@ class MLService:
 
     def _process_stl(self, file_path: str) -> np.ndarray:
         """Load an STL file (optionally gzip-compressed) and sample 10,000 points."""
+        print(f"[ML] Processing STL file: {file_path}")
         # Try our custom fast binary loader first to save memory
         vertices = self._load_binary_stl_vertices(file_path)
         
         if vertices is not None:
+            print(f"[ML] Custom binary parser succeeded. Loaded {len(vertices)} vertices.")
             if len(vertices) < 10_000:
                 if os.environ.get("ALLOW_DUMMY_STL") == "1":
                     features = np.zeros((10_000, 3))
@@ -198,6 +200,7 @@ class MLService:
             return features.reshape(1, 10_000, 3)
 
         # Fallback to trimesh if it is ASCII STL or parsing failed
+        print("[ML] Custom binary parser failed or file is ASCII. Falling back to trimesh.load()...")
         if file_path.endswith(".gz"):
             with gzip.open(file_path, "rb") as f:
                 mesh = trimesh.load(f, file_type="stl")
@@ -290,3 +293,6 @@ class MLService:
             # Always remove the temp file we downloaded, even on error.
             if is_s3 and os.path.exists(local_scan_path):
                 os.unlink(local_scan_path)
+            # Force garbage collection to free numpy arrays and temporary allocations
+            import gc
+            gc.collect()

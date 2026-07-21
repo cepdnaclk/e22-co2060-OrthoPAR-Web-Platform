@@ -120,25 +120,41 @@ class MLService:
         local_scan_path = storage_manager.download_to_temp(scan_path)
 
         try:
-            # Use in-memory cache to avoid slow reloading
+            # Use in-memory cache to avoid slow reloading (unless LOW_MEMORY_MODE is enabled)
             global _loaded_models_cache, _cached_model_dir, _cache_lock
-            with _cache_lock:
-                if _cached_model_dir != model_dir:
-                    _loaded_models_cache.clear()
-                    _cached_model_dir = model_dir
-                    
-                if file_type not in _loaded_models_cache:
-                    _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
-                    
-                model = _loaded_models_cache[file_type]
+            
+            low_memory = os.getenv("LOW_MEMORY_MODE", "False").lower() in ("true", "1", "t", "y", "yes")
+            
+            if low_memory:
+                # Bypass cache entirely to save RAM in restricted environments like Render Free Tier
+                model = tf.keras.models.load_model(full_model_path)
+            else:
+                with _cache_lock:
+                    if _cached_model_dir != model_dir:
+                        _loaded_models_cache.clear()
+                        _cached_model_dir = model_dir
+                        
+                    if file_type not in _loaded_models_cache:
+                        _loaded_models_cache[file_type] = tf.keras.models.load_model(full_model_path)
+                        
+                    model = _loaded_models_cache[file_type]
 
             features = self._process_stl(local_scan_path)
             # Use model() instead of model.predict() for better thread-safety and performance 
             # on small batches when sharing a single Keras model instance across threads.
             prediction = model(features, training=False).numpy()
             
+            formatted_prediction = self._format_prediction(prediction[0], names)
+            
+            if low_memory:
+                # Force release model memory and clear Keras backend session
+                tf.keras.backend.clear_session()
+                del model
+                import gc
+                gc.collect()
+                
             # Return formatted landmarks and the model version used
-            return self._format_prediction(prediction[0], names), self.active_model_record.version
+            return formatted_prediction, self.active_model_record.version
         finally:
             # Clean up temp file only if we downloaded from S3
             if is_s3 and os.path.exists(local_scan_path):

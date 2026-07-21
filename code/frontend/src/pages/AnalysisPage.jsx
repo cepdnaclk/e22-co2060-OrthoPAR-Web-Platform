@@ -71,7 +71,10 @@ function AnalysisStudio({ patientId }) {
         }
 
         setLoadingStep("Running TensorFlow ML Models (Extracting Landmarks)...");
-        await Promise.all(scans.map(s => extractLandmarks(s.id)));
+        for (let i = 0; i < scans.length; i++) {
+          setLoadingStep(`Running ML Model on scan ${i + 1} of ${scans.length}...`);
+          await extractLandmarks(scans[i].id);
+        }
 
         setLoadingStep("Computing PAR Mathematical Indices...");
         const score = await calculateScore(activeVisit.id);

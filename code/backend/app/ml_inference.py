@@ -1,4 +1,5 @@
 import os
+import gc
 import gzip
 import threading
 
@@ -57,39 +58,32 @@ _SCAN_TYPE_MAP: dict = {
 }
 
 # ---------------------------------------------------------------------------
-# Module-level model cache
+# Module-level model cache (TFLite Interpreters)
 #
-# Models are loaded ONCE (lazily, on first request for each scan type) and
-# reused for every subsequent call. Loading is protected by a lock so
-# concurrent requests don't race to load the same file twice.
+# Models are loaded as TFLite Interpreters ONCE (lazily, on first request for
+# each scan type) and reused for every subsequent call.
 #
-# Requests may still run concurrently (multiple clients, retries, multiple workers).
-# We avoid calling clear_session() between requests because it would invalidate
-# the cached model for other in-flight requests; if inference must be serialized,
-# add a dedicated inference lock at the call site.
-#
-# Key:   scan-type string  e.g. "Upper Arch Segment"
-# Value: loaded tf.keras.Model
+# If a TFLite flatbuffer file (.tflite) does not exist in the active directory,
+# we dynamically convert the Keras (.h5) model on-the-fly, write it to disk, 
+# free Keras's memory, and load the TFLite Interpreter.
 # ---------------------------------------------------------------------------
 _model_cache: dict = {}
 _model_cache_lock = threading.Lock()
 _cached_model_dir: str | None = None
 
 
-def _get_or_load_model(model_dir: str, scan_type: str):
+def _get_or_load_tflite_interpreter(model_dir: str, scan_type: str):
     """
-    Return the cached Keras model for scan_type, loading from disk on first call.
-
-    Thread-safe: concurrent callers for the same scan_type block until the
-    first load completes, then all share the same model object.
+    Return the cached TFLite Interpreter for scan_type, loading from disk on first call.
+    If the .tflite file is missing, converts the corresponding .h5 model on-the-fly.
     """
     global _model_cache, _cached_model_dir
 
-    filename, _ = _SCAN_TYPE_MAP[scan_type]
-    full_path = os.path.join(model_dir, filename)
-
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"Model file not found: {full_path}")
+    filename_h5, _ = _SCAN_TYPE_MAP[scan_type]
+    filename_tflite = filename_h5.replace(".h5", ".tflite")
+    
+    full_path_h5 = os.path.join(model_dir, filename_h5)
+    full_path_tflite = os.path.join(model_dir, filename_tflite)
 
     with _model_cache_lock:
         # If the active model directory changed, evict the stale cache.
@@ -98,9 +92,28 @@ def _get_or_load_model(model_dir: str, scan_type: str):
             _cached_model_dir = model_dir
 
         if scan_type not in _model_cache:
-            _model_cache[scan_type] = tf.keras.models.load_model(
-                full_path, compile=False
-            )
+            # If the TFLite model file doesn't exist, convert from H5 on-the-fly
+            if not os.path.exists(full_path_tflite):
+                if not os.path.exists(full_path_h5):
+                    raise FileNotFoundError(f"Neither TFLite nor H5 model file found: {full_path_h5}")
+                
+                print(f"[ML] Converting {filename_h5} to TFLite on-the-fly...")
+                model = tf.keras.models.load_model(full_path_h5, compile=False)
+                converter = tf.lite.TFLiteConverter.from_keras_model(model)
+                tflite_model = converter.convert()
+                with open(full_path_tflite, "wb") as f:
+                    f.write(tflite_model)
+                print(f"[ML] Dynamic conversion complete. Saved as {filename_tflite}")
+                
+                # Immediately release Keras resources
+                tf.keras.backend.clear_session()
+                del model
+                gc.collect()
+
+            # Load lightweight TFLite Interpreter (uses ~15MB of RAM instead of ~200MB+ for Keras)
+            interpreter = tf.lite.Interpreter(model_path=full_path_tflite)
+            interpreter.allocate_tensors()
+            _model_cache[scan_type] = interpreter
 
         return _model_cache[scan_type]
 
@@ -181,7 +194,7 @@ class MLService:
         if file_type not in _SCAN_TYPE_MAP:
             raise ValueError(f"Unsupported scan type for ML prediction: {file_type!r}")
 
-        # Resolve the directory containing the three .h5 model files.
+        # Resolve the directory containing the model files.
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         model_dir = os.path.join(base_dir, self.active_model_record.file_path)
 
@@ -192,12 +205,20 @@ class MLService:
         local_scan_path = storage_manager.download_to_temp(scan_path)
 
         try:
-            model = _get_or_load_model(model_dir, file_type)
+            interpreter = _get_or_load_tflite_interpreter(model_dir, file_type)
             features = self._process_stl(local_scan_path)
 
-            # model() is preferred over model.predict() for single-batch inference:
-            # faster, no progress-bar overhead, and safe with the cached model.
-            prediction = model(features, training=False).numpy()
+            input_details = interpreter.get_input_details()
+            output_details = interpreter.get_output_details()
+
+            # Set input tensor (cast to float32 for TFLite)
+            interpreter.set_tensor(input_details[0]['index'], features.astype(np.float32))
+
+            # Run inference
+            interpreter.invoke()
+
+            # Get output tensor
+            prediction = interpreter.get_tensor(output_details[0]['index'])
 
             return (
                 self._format_prediction(prediction[0], names),

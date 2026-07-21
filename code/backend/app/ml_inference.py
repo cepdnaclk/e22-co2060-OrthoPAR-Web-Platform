@@ -135,8 +135,69 @@ class MLService:
             .first()
         )
 
+    def _load_binary_stl_vertices(self, file_path: str) -> np.ndarray | None:
+        """Lightweight parser to load vertices from a binary STL file without trimesh overhead."""
+        if file_path.endswith(".gz"):
+            f = gzip.open(file_path, "rb")
+        else:
+            f = open(file_path, "rb")
+            
+        try:
+            header = f.read(80)
+            if len(header) < 80:
+                return None
+                
+            num_triangles_bytes = f.read(4)
+            if len(num_triangles_bytes) < 4:
+                return None
+            num_triangles = np.frombuffer(num_triangles_bytes, dtype=np.uint32)[0]
+            
+            # Read remainder of the file
+            content = f.read()
+            total_size = 84 + len(content)
+            expected_size = 84 + 50 * num_triangles
+            
+            if total_size != expected_size:
+                # If size doesn't match, it is either ASCII or corrupted. Fall back to trimesh.
+                return None
+            
+            # Structured dtype for binary STL records (50 bytes each)
+            dt = np.dtype([
+                ('normal', np.float32, (3,)),
+                ('vertices', np.float32, (3, 3)),
+                ('attr', np.uint16)
+            ])
+            
+            data = np.frombuffer(content, dtype=dt, count=num_triangles)
+            vertices = data['vertices'].reshape(-1, 3)
+            return vertices
+        except Exception:
+            return None
+        finally:
+            f.close()
+
     def _process_stl(self, file_path: str) -> np.ndarray:
         """Load an STL file (optionally gzip-compressed) and sample 10,000 points."""
+        # Try our custom fast binary loader first to save memory
+        vertices = self._load_binary_stl_vertices(file_path)
+        
+        if vertices is not None:
+            if len(vertices) < 10_000:
+                if os.environ.get("ALLOW_DUMMY_STL") == "1":
+                    features = np.zeros((10_000, 3))
+                    features[: len(vertices)] = vertices
+                else:
+                    raise ValueError(
+                        f"Insufficient mesh geometry: {len(vertices)} vertices found, "
+                        "minimum 10,000 required for clinical accuracy."
+                    )
+            else:
+                # Randomly sample 10,000 vertices from the mesh vertices
+                idx = np.random.choice(len(vertices), 10_000, replace=False)
+                features = vertices[idx]
+            return features.reshape(1, 10_000, 3)
+
+        # Fallback to trimesh if it is ASCII STL or parsing failed
         if file_path.endswith(".gz"):
             with gzip.open(file_path, "rb") as f:
                 mesh = trimesh.load(f, file_type="stl")
